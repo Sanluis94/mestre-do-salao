@@ -1,0 +1,1025 @@
+// ==========================================
+// gameplay.js — Game State, Mechanics, Characters
+// ==========================================
+import * as THREE from 'three';
+import {
+    createWaiterModel, createCustomerModel, createPlateModel,
+    createDirtyTableIndicator, createPatienceBar, updatePatienceBar,
+    updateKitchenReady
+} from './scene.js';
+import { updateHUD, updateOrders, showMessage, showLevelComplete, showGameOver } from './ui.js';
+
+// ---------- MENU ----------
+const MENU = [
+    { id: 'prato_dia', name: 'Prato do Dia', emoji: '🍛', price: 15, cookTime: 6 },
+    { id: 'massa', name: 'Massa Especial', emoji: '🍝', price: 22, cookTime: 8 },
+    { id: 'file', name: 'Filé Premium', emoji: '🥩', price: 35, cookTime: 11 },
+    { id: 'sobremesa', name: 'Sobremesa', emoji: '🍰', price: 12, cookTime: 4 },
+    { id: 'salada', name: 'Salada Gourmet', emoji: '🥗', price: 18, cookTime: 5 },
+];
+
+// ---------- LEVEL CONFIG ----------
+const LEVELS = [
+    { totalCustomers: 5,  timeLimit: 120, patience: 60, spawnInterval: 12 },
+    { totalCustomers: 7,  timeLimit: 130, patience: 50, spawnInterval: 10 },
+    { totalCustomers: 10, timeLimit: 140, patience: 45, spawnInterval: 8 },
+    { totalCustomers: 12, timeLimit: 150, patience: 40, spawnInterval: 7 },
+    { totalCustomers: 15, timeLimit: 160, patience: 35, spawnInterval: 6 },
+    { totalCustomers: 18, timeLimit: 170, patience: 30, spawnInterval: 5 },
+];
+
+// ---------- PATHFINDING (A* on navigation grid) ----------
+const NAV_CELL = 0.5;
+const NAV_MIN_X = -11;
+const NAV_MIN_Z = -10;
+const NAV_MAX_X = 10;
+const NAV_MAX_Z = 10;
+const NAV_W = Math.ceil((NAV_MAX_X - NAV_MIN_X) / NAV_CELL);
+const NAV_H = Math.ceil((NAV_MAX_Z - NAV_MIN_Z) / NAV_CELL);
+
+// Table obstacle data (position + block radius)
+const TABLE_OBSTACLES = [
+    { x: -4, z: -3, r: 1.4 },
+    { x: 1,  z: 1,  r: 1.6 },
+    { x: -3, z: 4,  r: 1.6 },
+    { x: 4,  z: -4, r: 1.4 },
+    { x: 5,  z: 3,  r: 1.6 },
+];
+
+function worldToGrid(wx, wz) {
+    return {
+        x: Math.floor((wx - NAV_MIN_X) / NAV_CELL),
+        z: Math.floor((wz - NAV_MIN_Z) / NAV_CELL),
+    };
+}
+
+function gridToWorld(gx, gz) {
+    return {
+        x: NAV_MIN_X + gx * NAV_CELL + NAV_CELL / 2,
+        z: NAV_MIN_Z + gz * NAV_CELL + NAV_CELL / 2,
+    };
+}
+
+function isCellWalkable(x, z) {
+    const halfRoom = 9;
+    const wallM = 0.5;
+
+    // Outside grid bounds
+    if (x < NAV_MIN_X || x > NAV_MAX_X || z < NAV_MIN_Z || z > NAV_MAX_Z) return false;
+
+    // Back wall
+    if (z <= -halfRoom + wallM) {
+        // Allow kitchen approach strip (z between -8.5 and -8.0, within kitchen x range)
+        if (x >= -1.5 && x <= 5.5 && z >= -halfRoom + 0.2) return true;
+        return false;
+    }
+
+    // Right wall
+    if (x >= halfRoom - wallM) return false;
+
+    // Left wall (with door opening at z 1.5 to 4.5)
+    if (x <= -halfRoom + wallM) {
+        if (z >= 1.0 && z <= 5.0) return true; // door passage
+        return false;
+    }
+
+    // Kitchen counter (block area behind counter)
+    if (x >= -1.8 && x <= 5.8 && z <= -halfRoom + 2.2 && z > -halfRoom + wallM) return false;
+
+    // Tables (circular obstacles)
+    for (const t of TABLE_OBSTACLES) {
+        const dx = x - t.x;
+        const dz = z - t.z;
+        if (dx * dx + dz * dz < t.r * t.r) return false;
+    }
+
+    return true;
+}
+
+function buildNavGrid() {
+    const grid = new Uint8Array(NAV_W * NAV_H);
+    for (let gx = 0; gx < NAV_W; gx++) {
+        for (let gz = 0; gz < NAV_H; gz++) {
+            const w = gridToWorld(gx, gz);
+            if (!isCellWalkable(w.x, w.z)) {
+                grid[gz * NAV_W + gx] = 1; // blocked
+            }
+        }
+    }
+    return grid;
+}
+
+function nearestWalkableCell(grid, gx, gz) {
+    // BFS to find nearest walkable cell
+    if (gx >= 0 && gx < NAV_W && gz >= 0 && gz < NAV_H && !grid[gz * NAV_W + gx]) {
+        return { x: gx, z: gz };
+    }
+    const visited = new Set();
+    const queue = [{ x: gx, z: gz }];
+    visited.add(`${gx},${gz}`);
+    while (queue.length > 0) {
+        const cur = queue.shift();
+        for (const [dx, dz] of [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]]) {
+            const nx = cur.x + dx, nz = cur.z + dz;
+            const key = `${nx},${nz}`;
+            if (visited.has(key)) continue;
+            visited.add(key);
+            if (nx < 0 || nx >= NAV_W || nz < 0 || nz >= NAV_H) continue;
+            if (!grid[nz * NAV_W + nx]) return { x: nx, z: nz };
+            queue.push({ x: nx, z: nz });
+        }
+    }
+    return null;
+}
+
+function astarPath(grid, sx, sz, ex, ez) {
+    // Clamp to grid
+    sx = Math.max(0, Math.min(NAV_W - 1, sx));
+    sz = Math.max(0, Math.min(NAV_H - 1, sz));
+    ex = Math.max(0, Math.min(NAV_W - 1, ex));
+    ez = Math.max(0, Math.min(NAV_H - 1, ez));
+
+    // If start blocked, snap to nearest walkable
+    if (grid[sz * NAV_W + sx]) {
+        const n = nearestWalkableCell(grid, sx, sz);
+        if (n) { sx = n.x; sz = n.z; } else return null;
+    }
+    // If end blocked, snap to nearest walkable
+    if (grid[ez * NAV_W + ex]) {
+        const n = nearestWalkableCell(grid, ex, ez);
+        if (n) { ex = n.x; ez = n.z; } else return null;
+    }
+
+    if (sx === ex && sz === ez) return [{ x: sx, z: sz }];
+
+    const heuristic = (ax, az) => Math.abs(ax - ex) + Math.abs(az - ez);
+    const key = (x, z) => z * NAV_W + x;
+
+    const openSet = new Map(); // key -> { x, z, g, f }
+    const cameFrom = new Map();
+    const gScore = new Map();
+
+    const startKey = key(sx, sz);
+    gScore.set(startKey, 0);
+    openSet.set(startKey, { x: sx, z: sz, g: 0, f: heuristic(sx, sz) });
+
+    const dirs = [[-1,0,1],[1,0,1],[0,-1,1],[0,1,1],[-1,-1,1.41],[-1,1,1.41],[1,-1,1.41],[1,1,1.41]];
+    let iterations = 0;
+    const maxIter = 3000;
+
+    while (openSet.size > 0 && iterations < maxIter) {
+        iterations++;
+
+        // Find node with lowest f
+        let best = null;
+        for (const [k, node] of openSet) {
+            if (!best || node.f < best.f) best = node;
+        }
+
+        if (best.x === ex && best.z === ez) {
+            // Reconstruct path
+            const path = [];
+            let ck = key(ex, ez);
+            while (ck !== undefined) {
+                const cx = ck % NAV_W;
+                const cz = Math.floor(ck / NAV_W);
+                path.unshift({ x: cx, z: cz });
+                ck = cameFrom.get(ck);
+            }
+            return path;
+        }
+
+        const bestKey = key(best.x, best.z);
+        openSet.delete(bestKey);
+
+        for (const [dx, dz, cost] of dirs) {
+            const nx = best.x + dx;
+            const nz = best.z + dz;
+            if (nx < 0 || nx >= NAV_W || nz < 0 || nz >= NAV_H) continue;
+            if (grid[nz * NAV_W + nx]) continue;
+
+            // For diagonal movement, check that both adjacent cells are walkable
+            if (dx !== 0 && dz !== 0) {
+                if (grid[best.z * NAV_W + nx] || grid[nz * NAV_W + best.x]) continue;
+            }
+
+            const nk = key(nx, nz);
+            const tentG = best.g + cost;
+
+            if (!gScore.has(nk) || tentG < gScore.get(nk)) {
+                gScore.set(nk, tentG);
+                cameFrom.set(nk, bestKey);
+                const f = tentG + heuristic(nx, nz);
+                openSet.set(nk, { x: nx, z: nz, g: tentG, f });
+            }
+        }
+    }
+
+    return null; // no path found
+}
+
+function findWorldPath(grid, startPos, endPos) {
+    const sg = worldToGrid(startPos.x, startPos.z);
+    const eg = worldToGrid(endPos.x, endPos.z);
+
+    const gridPath = astarPath(grid, sg.x, sg.z, eg.x, eg.z);
+    if (!gridPath || gridPath.length === 0) {
+        return [endPos.clone()]; // fallback: straight line
+    }
+
+    // Convert grid path to world waypoints
+    let waypoints = gridPath.map(p => {
+        const w = gridToWorld(p.x, p.z);
+        return new THREE.Vector3(w.x, 0, w.z);
+    });
+
+    // Path smoothing: remove redundant waypoints
+    waypoints = smoothPath(waypoints, grid);
+
+    // Add the exact end position as final waypoint for precision
+    waypoints.push(endPos.clone());
+    waypoints[waypoints.length - 1].y = 0;
+
+    return waypoints;
+}
+
+function smoothPath(waypoints, grid) {
+    if (waypoints.length <= 2) return waypoints;
+
+    const smoothed = [waypoints[0]];
+    let current = 0;
+
+    while (current < waypoints.length - 1) {
+        // Try to skip ahead to the farthest visible waypoint
+        let farthest = current + 1;
+        for (let i = waypoints.length - 1; i > current + 1; i--) {
+            if (hasLineOfSight(waypoints[current], waypoints[i], grid)) {
+                farthest = i;
+                break;
+            }
+        }
+        smoothed.push(waypoints[farthest]);
+        current = farthest;
+    }
+
+    return smoothed;
+}
+
+function hasLineOfSight(a, b, grid) {
+    const steps = Math.ceil(a.distanceTo(b) / (NAV_CELL * 0.5));
+    for (let i = 1; i < steps; i++) {
+        const t = i / steps;
+        const x = a.x + (b.x - a.x) * t;
+        const z = a.z + (b.z - a.z) * t;
+        const g = worldToGrid(x, z);
+        if (g.x < 0 || g.x >= NAV_W || g.z < 0 || g.z >= NAV_H) return false;
+        if (grid[g.z * NAV_W + g.x]) return false;
+    }
+    return true;
+}
+
+// ---------- GAME CLASS ----------
+export class Game {
+    constructor(scene, restaurantData, camera) {
+        this.scene = scene;
+        this.camera = camera;
+        this.tables = restaurantData.tables;
+        this.kitchen = restaurantData.kitchen;
+        this.doorPosition = restaurantData.doorPosition;
+
+        this.state = {
+            money: 0, score: 0, satisfaction: 100,
+            timeLeft: 120, level: 1, paused: false, running: false,
+        };
+
+        this.waiter = null;
+        this.customers = [];
+        this.orders = [];
+        this.spawnTimer = 0;
+        this.customersSpawned = 0;
+        this.customersServed = 0;
+        this.levelMoney = 0;
+        this.customerIdCounter = 0;
+        this.orderIdCounter = 0;
+
+        // Waiter state
+        this.waiterState = 'idle'; // idle, walking, busy
+        this.waiterTarget = null;
+        this.waiterAction = null; // what to do on arrival
+        this.waiterActionQueue = []; // queued actions
+        this.waiterCarrying = null; // food plate model
+        this.waiterSpeed = 5.5;
+        this.waiterPath = []; // A* path waypoints
+        this.waiterPathIdx = 0;
+
+        // Navigation grid
+        this.navGrid = buildNavGrid();
+
+        // Visual indicators
+        this.indicators = [];
+    }
+
+    start(level = 1) {
+        this.state.level = level;
+        this.state.satisfaction = 100;
+        this.state.running = true;
+        this.state.paused = false;
+        this.customersSpawned = 0;
+        this.customersServed = 0;
+        this.levelMoney = 0;
+        this.spawnTimer = 2; // first customer after 2 seconds
+
+        const cfg = this.getLevelConfig();
+        this.state.timeLeft = cfg.timeLimit;
+
+        // Clear previous
+        this.clearAll();
+
+        // Create waiter
+        this.waiter = createWaiterModel();
+        this.waiter.position.set(0, 0, 0);
+        this.scene.add(this.waiter);
+        this.waiterState = 'idle';
+
+        // Reset tables
+        this.tables.forEach(t => {
+            t.state = 'empty';
+            t.customerRef = null;
+            t.orderRef = null;
+        });
+
+        showMessage('Bem-vindo ao turno! Clique nos clientes na entrada para recepcioná-los.', 5000);
+        updateHUD(this.state);
+    }
+
+    clearAll() {
+        // Remove waiter
+        if (this.waiter) { this.scene.remove(this.waiter); this.waiter = null; }
+        // Remove customers + patience bars
+        this.customers.forEach(c => {
+            if (c.model) this.scene.remove(c.model);
+            if (c.patienceBar) this.scene.remove(c.patienceBar);
+        });
+        this.customers = [];
+        // Remove waiter carrying
+        if (this.waiterCarrying) { this.scene.remove(this.waiterCarrying); this.waiterCarrying = null; }
+        // Remove indicators
+        this.indicators.forEach(i => this.scene.remove(i));
+        this.indicators = [];
+        // Remove dirty table indicators
+        this.tables.forEach(t => {
+            if (t.dirtyIndicator) { this.scene.remove(t.dirtyIndicator); t.dirtyIndicator = null; }
+            if (t.foodPlate) { this.scene.remove(t.foodPlate); t.foodPlate = null; }
+        });
+        this.orders = [];
+        this.waiterState = 'idle';
+        this.waiterTarget = null;
+        this.waiterAction = null;
+        this.waiterActionQueue = [];
+        // Reset kitchen ready indicator
+        updateKitchenReady(this.kitchen, false);
+    }
+
+    getLevelConfig() {
+        const idx = Math.min(this.state.level - 1, LEVELS.length - 1);
+        return LEVELS[idx];
+    }
+
+    // ---------- UPDATE (called each frame) ----------
+    update(dt) {
+        if (!this.state.running || this.state.paused) return;
+
+        const cfg = this.getLevelConfig();
+
+        // Timer
+        this.state.timeLeft -= dt;
+
+        // Spawn customers
+        this.spawnTimer -= dt;
+        if (this.spawnTimer <= 0 && this.customersSpawned < cfg.totalCustomers) {
+            this.spawnCustomer();
+            this.spawnTimer = cfg.spawnInterval + (Math.random() * 3 - 1.5);
+        }
+
+        // Update waiter movement
+        this.updateWaiter(dt);
+
+        // Update customers
+        this.updateCustomers(dt);
+
+        // Update orders (cooking)
+        this.updateOrders(dt);
+
+        // Check satisfaction
+        if (this.state.satisfaction <= 0) {
+            this.state.satisfaction = 0;
+            this.state.running = false;
+            showGameOver({
+                level: this.state.level,
+                score: this.state.score,
+                money: this.state.money,
+            });
+            return;
+        }
+
+        // Check level completion
+        if (this.state.timeLeft <= 0 || this.isLevelComplete()) {
+            this.state.timeLeft = Math.max(0, this.state.timeLeft);
+            this.state.running = false;
+            showLevelComplete({
+                served: this.customersServed,
+                score: this.state.score,
+                money: this.levelMoney,
+                satisfaction: this.state.satisfaction,
+            });
+            return;
+        }
+
+        // Update kitchen ready indicator
+        const hasReadyOrders = this.orders.some(o => o.state === 'ready');
+        updateKitchenReady(this.kitchen, hasReadyOrders);
+
+        updateHUD(this.state);
+        updateOrders(this.orders.filter(o => o.state !== 'done'));
+    }
+
+    isLevelComplete() {
+        const cfg = this.getLevelConfig();
+        // Level done when all customers spawned AND no active customers
+        if (this.customersSpawned >= cfg.totalCustomers && this.customers.length === 0) {
+            // Also check no pending orders
+            return this.orders.every(o => o.state === 'delivered' || o.state === 'done');
+        }
+        return false;
+    }
+
+    // ---------- SPAWN CUSTOMER ----------
+    spawnCustomer() {
+        const id = this.customerIdCounter++;
+        const model = createCustomerModel(id);
+
+        // Queue position: line up at door with spacing
+        const waitingCount = this.customers.filter(c => c.state === 'waiting_at_door').length;
+        const spawnPos = this.doorPosition.clone();
+        spawnPos.x += 1 + waitingCount * 1.2; // spread along x
+        spawnPos.z += 0;
+        model.position.copy(spawnPos);
+        this.scene.add(model);
+
+        // Create patience bar
+        const patienceBar = createPatienceBar();
+        patienceBar.position.set(spawnPos.x, 2.1, spawnPos.z);
+        this.scene.add(patienceBar);
+
+        const customer = {
+            id,
+            model,
+            patienceBar,
+            state: 'waiting_at_door',
+            patience: this.getLevelConfig().patience,
+            maxPatience: this.getLevelConfig().patience,
+            tableIndex: -1,
+            order: null,
+            eatTimer: 0,
+        };
+
+        this.customers.push(customer);
+        this.customersSpawned++;
+
+        // Bobbing animation
+        model.userData.bobTime = Math.random() * Math.PI * 2;
+
+        if (waitingCount === 0) {
+            showMessage('👋 Um cliente chegou! Clique nele para recepcioná-lo.', 4000);
+        } else {
+            showMessage(`👥 ${waitingCount + 1} clientes esperando na entrada!`, 3000);
+        }
+    }
+
+    // ---------- UPDATE CUSTOMERS ----------
+    updateCustomers(dt) {
+        for (let i = this.customers.length - 1; i >= 0; i--) {
+            const c = this.customers[i];
+
+            // Patience decreases while waiting (not while eating or leaving)
+            if (['waiting_at_door', 'seated', 'ordering', 'waiting_food'].includes(c.state)) {
+                c.patience -= dt;
+
+                // Update patience bar position and visuals
+                if (c.patienceBar) {
+                    const pos = c.model.position;
+                    c.patienceBar.position.set(pos.x, pos.y + 2.1, pos.z);
+                    const ratio = c.patience / c.maxPatience;
+                    updatePatienceBar(c.patienceBar, ratio, this.camera);
+
+                    // Show/hide bar based on state
+                    c.patienceBar.visible = true;
+                }
+
+                if (c.patience <= 0) {
+                    // Customer leaves angry
+                    this.state.satisfaction -= 15;
+                    showMessage('😡 Um cliente saiu irritado! Satisfação diminuiu.', 3000);
+                    if (c.tableIndex >= 0) {
+                        const table = this.tables[c.tableIndex];
+                        table.state = 'empty';
+                        table.customerRef = null;
+                        this.orders = this.orders.filter(o => o.tableIndex !== c.tableIndex || o.state === 'delivered');
+                    }
+                    this.removeCustomer(c, i);
+                    continue;
+                }
+            }
+
+            // Hide patience bar while eating
+            if (c.state === 'eating' && c.patienceBar) {
+                c.patienceBar.visible = false;
+            }
+
+            // Bobbing animation for waiting customers
+            if (c.state === 'waiting_at_door') {
+                c.model.userData.bobTime += dt * 2;
+                c.model.position.y = Math.sin(c.model.userData.bobTime) * 0.05;
+            }
+
+            // Following waiter - update patience bar position
+            if (c.state === 'following' && c.patienceBar) {
+                const pos = c.model.position;
+                c.patienceBar.position.set(pos.x, pos.y + 2.1, pos.z);
+                updatePatienceBar(c.patienceBar, c.patience / c.maxPatience, this.camera);
+            }
+
+            // Eating timer
+            if (c.state === 'eating') {
+                c.eatTimer -= dt;
+                if (c.eatTimer <= 0) {
+                    c.state = 'leaving';
+                    this.customerFinished(c);
+                }
+            }
+
+            // Leaving animation (follows A* path)
+            if (c.state === 'leaving') {
+                // Hide patience bar
+                if (c.patienceBar) c.patienceBar.visible = false;
+
+                // Compute leaving path once
+                if (!c.leavePath) {
+                    c.leavePath = findWorldPath(this.navGrid, c.model.position, this.doorPosition);
+                    c.leavePathIdx = 0;
+                }
+
+                if (c.leavePathIdx >= c.leavePath.length) {
+                    this.removeCustomer(c, i);
+                    continue;
+                }
+
+                const wp = c.leavePath[c.leavePathIdx];
+                const dir = new THREE.Vector3(wp.x - c.model.position.x, 0, wp.z - c.model.position.z);
+                const dist = dir.length();
+
+                if (dist < 0.4) {
+                    c.leavePathIdx++;
+                    if (c.leavePathIdx >= c.leavePath.length) {
+                        this.removeCustomer(c, i);
+                        continue;
+                    }
+                } else {
+                    dir.normalize().multiplyScalar(Math.min(dt * 4, dist));
+                    c.model.position.add(dir);
+                    c.model.lookAt(wp.x, c.model.position.y, wp.z);
+                }
+            }
+        }
+    }
+
+    // ---------- REMOVE CUSTOMER (cleanup) ----------
+    removeCustomer(customer, index) {
+        if (customer.model) this.scene.remove(customer.model);
+        if (customer.patienceBar) this.scene.remove(customer.patienceBar);
+        this.customers.splice(index, 1);
+        updateOrders(this.orders.filter(o => o.state !== 'done'));
+    }
+
+    customerFinished(customer) {
+        const table = this.tables[customer.tableIndex];
+        // Remove food plate
+        if (table.foodPlate) {
+            this.scene.remove(table.foodPlate);
+            table.foodPlate = null;
+        }
+        // Mark table dirty
+        table.state = 'dirty';
+        table.customerRef = null;
+        // Add dirty indicator
+        const dirtyInd = createDirtyTableIndicator();
+        dirtyInd.position.copy(table.position);
+        this.scene.add(dirtyInd);
+        table.dirtyIndicator = dirtyInd;
+
+        // Money & score
+        const order = this.orders.find(o => o.tableIndex === customer.tableIndex && o.state === 'delivered');
+        if (order) {
+            const earned = order.menuItem.price;
+            const patienceBonus = Math.round((customer.patience / customer.maxPatience) * 10);
+            this.state.money += earned;
+            this.state.score += earned + patienceBonus;
+            this.levelMoney += earned;
+            this.state.satisfaction = Math.min(100, this.state.satisfaction + 3);
+            order.state = 'done';
+            showMessage(`💰 R$ ${earned} ganhos! +${patienceBonus} bônus de agilidade`, 3000);
+        }
+        this.customersServed++;
+        updateOrders(this.orders.filter(o => o.state !== 'done'));
+    }
+
+    // ---------- UPDATE ORDERS (cooking) ----------
+    updateOrders(dt) {
+        this.orders.forEach(order => {
+            if (order.state === 'cooking') {
+                order.cookTimer -= dt;
+                if (order.cookTimer <= 0) {
+                    order.state = 'ready';
+                    showMessage(`✅ ${order.menuItem.emoji} ${order.menuItem.name} está pronto! Clique no balcão.`, 4000);
+                }
+            }
+        });
+    }
+
+    // ---------- UPDATE WAITER (follows A* path) ----------
+    updateWaiter(dt) {
+        if (this.waiterState !== 'walking' || !this.waiter) return;
+        if (this.waiterPath.length === 0) {
+            this.waiterState = 'idle';
+            this.executeWaiterAction();
+            return;
+        }
+
+        const target = this.waiterPath[this.waiterPathIdx];
+        if (!target) {
+            this.waiterState = 'idle';
+            this.executeWaiterAction();
+            return;
+        }
+
+        const dir = new THREE.Vector3(target.x - this.waiter.position.x, 0, target.z - this.waiter.position.z);
+        const dist = dir.length();
+
+        // Reached current waypoint?
+        const isLastWaypoint = this.waiterPathIdx >= this.waiterPath.length - 1;
+        const arrivalDist = isLastWaypoint ? 0.3 : 0.4;
+
+        if (dist < arrivalDist) {
+            this.waiterPathIdx++;
+            if (this.waiterPathIdx >= this.waiterPath.length) {
+                // Arrived at final destination
+                this.waiter.position.x = target.x;
+                this.waiter.position.z = target.z;
+                this.waiterState = 'idle';
+                this.waiterPath = [];
+                this.waiterPathIdx = 0;
+                this.executeWaiterAction();
+            }
+            return;
+        }
+
+        // Move toward current waypoint
+        dir.normalize().multiplyScalar(Math.min(dt * this.waiterSpeed, dist));
+        this.waiter.position.add(dir);
+
+        // Look ahead (use next waypoint if close to current for smoother rotation)
+        const lookTarget = (dist < 1.0 && this.waiterPathIdx < this.waiterPath.length - 1)
+            ? this.waiterPath[this.waiterPathIdx + 1]
+            : target;
+        this.waiter.lookAt(lookTarget.x, this.waiter.position.y, lookTarget.z);
+    }
+
+    moveWaiterTo(target, action) {
+        const endPos = target.clone();
+        endPos.y = 0;
+        this.waiterAction = action;
+
+        // Compute A* path
+        this.waiterPath = findWorldPath(this.navGrid, this.waiter.position, endPos);
+        this.waiterPathIdx = 0;
+        this.waiterState = 'walking';
+    }
+
+    executeWaiterAction() {
+        if (!this.waiterAction) return;
+        const action = this.waiterAction;
+        this.waiterAction = null;
+
+        switch (action.type) {
+            case 'greet_customer':
+                this.greetCustomer(action.customerId);
+                break;
+            case 'seat_customer':
+                this.seatCustomer(action.customerId, action.tableIndex);
+                break;
+            case 'take_order':
+                this.takeOrder(action.tableIndex);
+                break;
+            case 'pickup_food':
+                this.pickupFood(action.orderId);
+                break;
+            case 'deliver_food':
+                this.deliverFood(action.tableIndex);
+                break;
+            case 'clean_table':
+                this.cleanTable(action.tableIndex);
+                break;
+        }
+    }
+
+    // ---------- ACTIONS ----------
+    greetCustomer(customerId) {
+        const customer = this.customers.find(c => c.id === customerId);
+        if (!customer || customer.state !== 'waiting_at_door') return;
+
+        // Find available table
+        const tableIndex = this.tables.findIndex(t => t.state === 'empty');
+        if (tableIndex === -1) {
+            showMessage('⚠️ Não há mesas disponíveis! Limpe as mesas sujas.', 3000);
+            return;
+        }
+
+        customer.state = 'following';
+        showMessage(`Levando cliente para a Mesa ${tableIndex + 1}...`, 3000);
+
+        // Move waiter to table, customer will follow
+        const table = this.tables[tableIndex];
+        table.state = 'occupied';
+        table.customerRef = customer;
+        customer.tableIndex = tableIndex;
+
+        // Move customer to table position
+        const seatPos = table.position.clone();
+        seatPos.x += (table.type === 'round' ? 1.2 : 0);
+        seatPos.z += (table.type === 'round' ? 0 : 1.2);
+
+        this.moveWaiterTo(table.position, {
+            type: 'seat_customer',
+            customerId,
+            tableIndex,
+        });
+
+        // Animate customer following
+        this.animateCustomerToTable(customer, seatPos);
+    }
+
+    animateCustomerToTable(customer, targetPos) {
+        // Compute A* path for the customer too
+        const path = findWorldPath(this.navGrid, customer.model.position, targetPos);
+        let pathIdx = 0;
+        const speed = 3.5; // customer walks slower than waiter
+        let lastTime = performance.now();
+
+        const animate = () => {
+            if (customer.state === 'leaving' || !customer.model.parent) return;
+            if (pathIdx >= path.length) {
+                customer.model.position.copy(targetPos);
+                return;
+            }
+
+            const now = performance.now();
+            const dt = Math.min((now - lastTime) / 1000, 0.1);
+            lastTime = now;
+
+            const wp = path[pathIdx];
+            const dir = new THREE.Vector3(wp.x - customer.model.position.x, 0, wp.z - customer.model.position.z);
+            const dist = dir.length();
+
+            if (dist < 0.4) {
+                pathIdx++;
+                if (pathIdx >= path.length) {
+                    customer.model.position.copy(targetPos);
+                    return;
+                }
+            } else {
+                dir.normalize().multiplyScalar(Math.min(dt * speed, dist));
+                customer.model.position.add(dir);
+                customer.model.lookAt(wp.x, customer.model.position.y, wp.z);
+            }
+
+            requestAnimationFrame(animate);
+        };
+        requestAnimationFrame(animate);
+    }
+
+    seatCustomer(customerId, tableIndex) {
+        const customer = this.customers.find(c => c.id === customerId);
+        if (!customer) return;
+        customer.state = 'seated';
+        showMessage(`Cliente sentado na Mesa ${tableIndex + 1}. Clique na mesa para anotar o pedido.`, 4000);
+    }
+
+    takeOrder(tableIndex) {
+        const table = this.tables[tableIndex];
+        const customer = table.customerRef;
+        if (!customer || customer.state !== 'seated') return;
+
+        // Random menu item
+        const menuItem = MENU[Math.floor(Math.random() * MENU.length)];
+        const order = {
+            id: this.orderIdCounter++,
+            menuItem,
+            tableIndex,
+            state: 'cooking',
+            cookTimer: menuItem.cookTime,
+        };
+
+        this.orders.push(order);
+        table.orderRef = order;
+        customer.state = 'waiting_food';
+        customer.order = order;
+
+        showMessage(`📝 Pedido anotado: ${menuItem.emoji} ${menuItem.name} (Mesa ${tableIndex + 1})`, 3000);
+        updateOrders(this.orders.filter(o => o.state !== 'done'));
+    }
+
+    pickupFood(orderId) {
+        const order = this.orders.find(o => o.id === orderId);
+        if (!order || order.state !== 'ready') return;
+
+        order.state = 'carrying';
+
+        // Visual: plate on waiter
+        const plate = createPlateModel();
+        plate.position.set(0, 0.3, 0.3);
+        this.waiter.add(plate);
+        this.waiterCarrying = plate;
+        this.waiterCarryingOrder = order;
+
+        showMessage(`🍽️ Prato pego! Clique na Mesa ${order.tableIndex + 1} para entregar.`, 4000);
+        updateOrders(this.orders.filter(o => o.state !== 'done'));
+    }
+
+    deliverFood(tableIndex) {
+        const order = this.waiterCarryingOrder;
+        if (!order || order.tableIndex !== tableIndex) {
+            showMessage('⚠️ Este prato não é para esta mesa!', 2000);
+            return;
+        }
+
+        // Remove plate from waiter
+        if (this.waiterCarrying) {
+            this.waiter.remove(this.waiterCarrying);
+            this.waiterCarrying = null;
+        }
+
+        // Add plate to table
+        const table = this.tables[tableIndex];
+        const foodPlate = createPlateModel();
+        foodPlate.position.copy(table.position);
+        this.scene.add(foodPlate);
+        table.foodPlate = foodPlate;
+
+        order.state = 'delivered';
+        this.waiterCarryingOrder = null;
+
+        // Customer starts eating
+        const customer = table.customerRef;
+        if (customer) {
+            customer.state = 'eating';
+            customer.eatTimer = 6 + Math.random() * 4;
+        }
+
+        showMessage(`✅ Prato entregue na Mesa ${tableIndex + 1}! Cliente está comendo.`, 3000);
+        updateOrders(this.orders.filter(o => o.state !== 'done'));
+    }
+
+    cleanTable(tableIndex) {
+        const table = this.tables[tableIndex];
+        table.state = 'empty';
+        table.customerRef = null;
+        table.orderRef = null;
+
+        // Remove dirty indicator
+        if (table.dirtyIndicator) {
+            this.scene.remove(table.dirtyIndicator);
+            table.dirtyIndicator = null;
+        }
+
+        this.state.score += 5;
+        showMessage(`🧹 Mesa ${tableIndex + 1} limpa e pronta!`, 2000);
+    }
+
+    // ---------- HANDLE CLICK (from raycasting) ----------
+    handleClick(intersectedObjects) {
+        if (!this.state.running || this.state.paused) return;
+        if (this.waiterState === 'walking') {
+            showMessage('⏳ Garçom está se movendo...', 1500);
+            return;
+        }
+
+        for (const obj of intersectedObjects) {
+            let current = obj.object;
+            // Walk up to find userData.type
+            while (current && !current.userData?.type) {
+                current = current.parent;
+            }
+            if (!current) continue;
+
+            const type = current.userData.type;
+
+            // Click on customer at door
+            if (type === 'customer') {
+                const customer = this.customers.find(c => c.model === current && c.state === 'waiting_at_door');
+                if (customer) {
+                    this.moveWaiterTo(customer.model.position, {
+                        type: 'greet_customer',
+                        customerId: customer.id,
+                    });
+                    return;
+                }
+            }
+
+            // Click on table
+            if (type === 'table') {
+                const tableIndex = current.userData.index;
+                const table = this.tables[tableIndex];
+
+                if (table.state === 'dirty') {
+                    this.moveWaiterTo(table.position, {
+                        type: 'clean_table',
+                        tableIndex,
+                    });
+                    return;
+                }
+
+                if (table.state === 'occupied') {
+                    const customer = table.customerRef;
+
+                    // If carrying food → deliver
+                    if (this.waiterCarrying && this.waiterCarryingOrder) {
+                        this.moveWaiterTo(table.position, {
+                            type: 'deliver_food',
+                            tableIndex,
+                        });
+                        return;
+                    }
+
+                    // If customer is seated → take order
+                    if (customer && customer.state === 'seated') {
+                        this.moveWaiterTo(table.position, {
+                            type: 'take_order',
+                            tableIndex,
+                        });
+                        return;
+                    }
+
+                    if (customer && customer.state === 'waiting_food') {
+                        showMessage('⏳ Pedido ainda em preparo. Aguarde...', 2000);
+                        return;
+                    }
+
+                    if (customer && customer.state === 'eating') {
+                        showMessage('🍽️ Cliente ainda está comendo.', 2000);
+                        return;
+                    }
+                }
+
+                if (table.state === 'empty') {
+                    showMessage('Mesa vazia. Espere um cliente chegar.', 2000);
+                    return;
+                }
+            }
+
+            // Click on kitchen
+            if (type === 'kitchen') {
+                const readyOrder = this.orders.find(o => o.state === 'ready');
+                if (readyOrder) {
+                    this.moveWaiterTo(this.kitchen.position, {
+                        type: 'pickup_food',
+                        orderId: readyOrder.id,
+                    });
+                    return;
+                }
+
+                if (this.orders.some(o => o.state === 'cooking')) {
+                    showMessage('🔥 Pedidos ainda estão sendo preparados...', 2000);
+                } else {
+                    showMessage('Nenhum pedido pendente na cozinha.', 2000);
+                }
+                return;
+            }
+        }
+    }
+
+    // ---------- NEXT LEVEL ----------
+    nextLevel() {
+        this.state.level++;
+        this.start(this.state.level);
+    }
+
+    restart() {
+        this.state.money = 0;
+        this.state.score = 0;
+        this.start(1);
+    }
+
+    togglePause() {
+        this.state.paused = !this.state.paused;
+    }
+}

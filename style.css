@@ -1,0 +1,371 @@
+/* ==========================================
+   MESTRE DO SALÃO — Design System
+   ========================================== */
+
+/* --- CSS Variables --- */
+:root {
+    --bg-dark: #0a0a2e;
+    --bg-darker: #050518;
+    --gold: #DAA520;
+    --gold-light: #F5D77A;
+    --gold-dark: #B8860B;
+    --text-primary: #F0E6D3;
+    --text-secondary: #8A8A9A;
+    --text-muted: #5A5A6A;
+    --panel-bg: rgba(10, 10, 30, 0.85);
+    --panel-border: rgba(218, 165, 32, 0.2);
+    --hud-bg: rgba(15, 15, 40, 0.9);
+    --green: #4CAF50;
+    --red: #E53935;
+    --font-display: 'Playfair Display', Georgia, serif;
+    --font-body: 'Inter', -apple-system, sans-serif;
+}
+
+/* --- Reset --- */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; font-family: var(--font-body); color: var(--text-primary); background: var(--bg-darker); }
+
+/* --- Screens --- */
+.screen {
+    position: fixed; inset: 0;
+    display: none; align-items: center; justify-content: center;
+    z-index: 10;
+}
+.screen.active { display: flex; }
+
+/* --- Particles Canvas --- */
+#particles-canvas {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+}
+
+/* ==========================================
+   MENU SCREEN
+   ========================================== */
+#menu-screen {
+    background: radial-gradient(ellipse at center, #0f1040 0%, #050518 70%);
+}
+.menu-content {
+    position: relative; z-index: 1;
+    text-align: center;
+    animation: fadeInUp 1s ease-out;
+}
+.logo-icon {
+    font-size: 4rem;
+    margin-bottom: 0.5rem;
+    filter: drop-shadow(0 0 20px rgba(218,165,32,0.4));
+    animation: float 3s ease-in-out infinite;
+}
+.game-title {
+    font-family: var(--font-display);
+    font-size: 4rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 50%, var(--gold-dark) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+    margin-bottom: 0.5rem;
+    text-shadow: none;
+}
+.subtitle {
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.3em;
+    color: var(--text-secondary);
+    margin-bottom: 2.5rem;
+}
+.menu-buttons {
+    display: flex; flex-direction: column;
+    gap: 0.75rem; align-items: center;
+}
+.footer-text {
+    margin-top: 2.5rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* --- Buttons --- */
+.btn {
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    width: 280px; padding: 1rem 2rem;
+    border: none; border-radius: 12px;
+    font-family: var(--font-body);
+    font-size: 1.1rem; font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative; overflow: hidden;
+}
+.btn::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+.btn:hover::after { opacity: 1; }
+.btn-primary {
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    color: #1a1a2e;
+    box-shadow: 0 4px 20px rgba(218,165,32,0.3);
+}
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 30px rgba(218,165,32,0.5);
+}
+.btn-secondary {
+    background: rgba(255,255,255,0.06);
+    color: var(--text-primary);
+    border: 1px solid rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
+}
+.btn-secondary:hover {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(218,165,32,0.3);
+    transform: translateY(-2px);
+}
+.btn-icon { font-size: 1rem; }
+
+/* ==========================================
+   OVERLAY PANELS (Tutorial, Credits)
+   ========================================== */
+#tutorial-screen, #credits-screen {
+    background: radial-gradient(ellipse at center, #0f1040 0%, #050518 70%);
+}
+.overlay-panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 20px;
+    padding: 2.5rem 3rem;
+    max-width: 600px;
+    width: 90%;
+    backdrop-filter: blur(20px);
+    animation: fadeInUp 0.5s ease-out;
+}
+.overlay-panel h2 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    color: var(--gold-light);
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+/* Tutorial */
+.tutorial-steps { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem; }
+.step {
+    display: flex; align-items: flex-start; gap: 1rem;
+    background: rgba(255,255,255,0.03);
+    border-radius: 12px; padding: 1rem;
+    border-left: 3px solid var(--gold);
+}
+.step-num {
+    background: var(--gold);
+    color: #1a1a2e;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.85rem;
+    flex-shrink: 0;
+}
+.step p { font-size: 0.9rem; line-height: 1.5; }
+.step strong { color: var(--gold-light); }
+.tutorial-tips { margin-bottom: 1.5rem; }
+.tutorial-tips h3 { font-size: 1rem; margin-bottom: 0.5rem; color: var(--gold-light); }
+.tutorial-tips ul { list-style: none; padding: 0; }
+.tutorial-tips li {
+    font-size: 0.85rem; color: var(--text-secondary);
+    padding: 0.3rem 0; padding-left: 1.2rem;
+    position: relative;
+}
+.tutorial-tips li::before { content: '•'; position: absolute; left: 0; color: var(--gold); }
+
+/* Credits */
+.credits-content { display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 1.5rem; }
+.credit-item { text-align: center; }
+.credit-item h3 { font-size: 0.8rem; letter-spacing: 0.15em; color: var(--gold); text-transform: uppercase; margin-bottom: 0.3rem; }
+.credit-item p { font-size: 1rem; }
+.credit-detail { font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.2rem; }
+
+/* ==========================================
+   GAME SCREEN
+   ========================================== */
+#game-screen { z-index: 5; }
+#game-canvas {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+}
+
+/* --- HUD Top Bar --- */
+#hud-top {
+    position: absolute; top: 12px; left: 12px; right: 12px;
+    display: flex; justify-content: center; gap: 10px;
+    z-index: 20;
+    flex-wrap: wrap;
+}
+.hud-item {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--hud-bg);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 25px;
+    padding: 8px 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    backdrop-filter: blur(10px);
+    white-space: nowrap;
+}
+.hud-emoji { font-size: 1rem; }
+.hud-value { font-weight: 700; }
+.hud-value.money { color: #4CAF50; }
+.hud-value.score { color: var(--gold-light); }
+.hud-value.time { color: #FF9800; font-variant-numeric: tabular-nums; }
+.hud-value.level { color: #42A5F5; }
+
+/* Satisfaction Bar */
+.satisfaction-bar {
+    width: 100px; height: 10px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 5px;
+    overflow: hidden;
+}
+.satisfaction-fill {
+    height: 100%; width: 100%;
+    background: linear-gradient(90deg, var(--red), #FF9800, var(--green));
+    border-radius: 5px;
+    transition: width 0.5s ease;
+}
+
+/* --- Orders Panel --- */
+#orders-panel {
+    position: absolute; top: 70px; right: 12px;
+    width: 220px;
+    background: var(--hud-bg);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 14px;
+    z-index: 20;
+    backdrop-filter: blur(10px);
+    max-height: 50vh;
+    overflow-y: auto;
+}
+#orders-panel h3 {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+#orders-list { display: flex; flex-direction: column; gap: 6px; }
+.order-item {
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(255,255,255,0.04);
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 0.78rem;
+    border-left: 3px solid var(--gold);
+    animation: slideIn 0.3s ease-out;
+}
+.order-item.cooking { border-left-color: #FF9800; }
+.order-item.ready { border-left-color: var(--green); animation: pulse-border 1s infinite; }
+.order-item .order-name { color: var(--text-primary); font-weight: 500; }
+.order-item .order-table { color: var(--text-secondary); font-size: 0.7rem; }
+.order-item .order-status { font-size: 0.7rem; font-weight: 600; }
+.order-item .order-status.status-cooking { color: #FF9800; }
+.order-item .order-status.status-ready { color: var(--green); }
+
+/* --- Message Bar --- */
+#message-bar {
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--hud-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 25px;
+    padding: 10px 24px;
+    z-index: 20;
+    backdrop-filter: blur(10px);
+    animation: fadeInUp 0.4s ease-out;
+    max-width: 90%;
+}
+#message-text {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* --- Pause Button --- */
+.btn-icon-only {
+    position: absolute; top: 12px; right: 245px;
+    background: var(--hud-bg);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 50%;
+    width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    cursor: pointer;
+    z-index: 20;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s;
+}
+.btn-icon-only:hover { background: rgba(255,255,255,0.1); }
+
+/* ==========================================
+   GAME OVERLAYS (Level Complete, Game Over, Pause)
+   ========================================== */
+.game-overlay {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(5,5,24,0.8);
+    z-index: 50;
+    backdrop-filter: blur(5px);
+}
+.game-overlay.hidden { display: none; }
+.result-panel { text-align: center; }
+.result-stats {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 1rem; margin: 1.5rem 0;
+}
+.stat {
+    background: rgba(255,255,255,0.04);
+    border-radius: 12px;
+    padding: 1rem;
+}
+.stat-label { display: block; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.3rem; }
+.stat-value { display: block; font-size: 1.5rem; font-weight: 700; color: var(--gold-light); }
+.game-over-msg { color: var(--text-secondary); margin-bottom: 1rem; }
+.result-buttons { display: flex; flex-direction: column; gap: 0.5rem; align-items: center; }
+.result-buttons .btn { width: 240px; }
+
+/* ==========================================
+   ANIMATIONS
+   ========================================== */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+@keyframes pulse-border {
+    0%, 100% { border-left-color: var(--green); }
+    50% { border-left-color: #81C784; }
+}
+
+/* --- Scrollbar --- */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+    .game-title { font-size: 2.5rem; }
+    .btn { width: 240px; padding: 0.85rem 1.5rem; font-size: 1rem; }
+    #hud-top { gap: 6px; }
+    .hud-item { padding: 6px 10px; font-size: 0.65rem; }
+    #orders-panel { width: 180px; }
+    .overlay-panel { padding: 1.5rem; }
+    .btn-icon-only { right: 195px; }
+}
