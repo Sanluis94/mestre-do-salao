@@ -7,7 +7,10 @@ import {
     createDirtyTableIndicator, createPatienceBar, updatePatienceBar,
     updateKitchenReady
 } from './scene.js';
-import { updateHUD, updateOrders, showMessage, showLevelComplete, showGameOver } from './ui.js';
+import {
+    updateHUD, updateOrders, showMessage, showLevelComplete, showGameOver,
+    showFloatingMoney, updateCombo, updateCarrying, playSound
+} from './ui.js';
 
 // ---------- MENU ----------
 const MENU = [
@@ -315,6 +318,11 @@ export class Game {
         // Navigation grid
         this.navGrid = buildNavGrid();
 
+        // Combo system
+        this.combo = 0;
+        this.lastServeTime = 0;
+        this.comboTimer = 0;
+
         // Visual indicators
         this.indicators = [];
     }
@@ -378,6 +386,11 @@ export class Game {
         this.waiterActionQueue = [];
         // Reset kitchen ready indicator
         updateKitchenReady(this.kitchen, false);
+        // Reset combo
+        this.combo = 0;
+        this.comboTimer = 0;
+        updateCombo(0);
+        updateCarrying(null);
     }
 
     getLevelConfig() {
@@ -438,6 +451,15 @@ export class Game {
         // Update kitchen ready indicator
         const hasReadyOrders = this.orders.some(o => o.state === 'ready');
         updateKitchenReady(this.kitchen, hasReadyOrders);
+
+        // Update combo timer
+        if (this.comboTimer > 0) {
+            this.comboTimer -= dt;
+            if (this.comboTimer <= 0) {
+                this.combo = 0;
+                updateCombo(0);
+            }
+        }
 
         updateHUD(this.state);
         updateOrders(this.orders.filter(o => o.state !== 'done'));
@@ -520,6 +542,10 @@ export class Game {
                     // Customer leaves angry
                     this.state.satisfaction -= 15;
                     showMessage('😡 Um cliente saiu irritado! Satisfação diminuiu.', 3000);
+                    playSound('angry');
+                    // Reset combo on angry customer
+                    this.combo = 0;
+                    updateCombo(0);
                     if (c.tableIndex >= 0) {
                         const table = this.tables[c.tableIndex];
                         table.state = 'empty';
@@ -617,17 +643,59 @@ export class Game {
         this.scene.add(dirtyInd);
         table.dirtyIndicator = dirtyInd;
 
-        // Money & score
+        // Money & score with combo system
         const order = this.orders.find(o => o.tableIndex === customer.tableIndex && o.state === 'delivered');
         if (order) {
             const earned = order.menuItem.price;
-            const patienceBonus = Math.round((customer.patience / customer.maxPatience) * 10);
-            this.state.money += earned;
-            this.state.score += earned + patienceBonus;
-            this.levelMoney += earned;
-            this.state.satisfaction = Math.min(100, this.state.satisfaction + 3);
+            const patienceRatio = customer.patience / customer.maxPatience;
+            const patienceBonus = Math.round(patienceRatio * 10);
+
+            // Combo logic: fast service within 15 seconds
+            const now = performance.now();
+            if (this.lastServeTime > 0 && (now - this.lastServeTime) < 15000) {
+                this.combo++;
+            } else {
+                this.combo = 1;
+            }
+            this.lastServeTime = now;
+            this.comboTimer = 8; // combo expires after 8 seconds
+
+            const comboMultiplier = Math.min(this.combo, 5);
+            const comboBonus = comboMultiplier > 1 ? Math.round(earned * (comboMultiplier - 1) * 0.3) : 0;
+            const tipAmount = patienceRatio > 0.5 ? Math.round(earned * patienceRatio * 0.2) : 0;
+            const totalEarned = earned + tipAmount + comboBonus;
+
+            this.state.money += totalEarned;
+            this.state.score += totalEarned + patienceBonus;
+            this.levelMoney += totalEarned;
+            this.state.satisfaction = Math.min(100, this.state.satisfaction + 3 + (comboMultiplier > 1 ? 2 : 0));
             order.state = 'done';
-            showMessage(`💰 R$ ${earned} ganhos! +${patienceBonus} bônus de agilidade`, 3000);
+
+            // Floating money popups
+            const baseX = 30 + Math.random() * 40;
+            showFloatingMoney(earned, baseX, 40, 'normal');
+            if (tipAmount > 0) {
+                setTimeout(() => showFloatingMoney(tipAmount, baseX + 5, 35, 'bonus'), 300);
+            }
+            if (comboBonus > 0) {
+                setTimeout(() => showFloatingMoney(comboBonus, baseX + 10, 30, 'combo'), 500);
+            }
+
+            // Sound effects
+            playSound('money');
+            if (comboMultiplier > 1) {
+                setTimeout(() => playSound('combo'), 200);
+            }
+
+            // Update combo display
+            updateCombo(comboMultiplier);
+
+            // Message
+            let msg = `💰 R$ ${earned}`;
+            if (tipAmount > 0) msg += ` + R$ ${tipAmount} gorjeta`;
+            if (comboBonus > 0) msg += ` + R$ ${comboBonus} combo x${comboMultiplier}`;
+            msg += ` | +${patienceBonus} bônus agilidade`;
+            showMessage(msg, 4000);
         }
         this.customersServed++;
         updateOrders(this.orders.filter(o => o.state !== 'done'));
@@ -640,6 +708,7 @@ export class Game {
                 order.cookTimer -= dt;
                 if (order.cookTimer <= 0) {
                     order.state = 'ready';
+                    playSound('ready');
                     showMessage(`✅ ${order.menuItem.emoji} ${order.menuItem.name} está pronto! Clique no balcão.`, 4000);
                 }
             }
@@ -811,6 +880,7 @@ export class Game {
         const customer = this.customers.find(c => c.id === customerId);
         if (!customer) return;
         customer.state = 'seated';
+        playSound('seat');
         showMessage(`Cliente sentado na Mesa ${tableIndex + 1}. Clique na mesa para anotar o pedido.`, 4000);
     }
 
@@ -835,6 +905,7 @@ export class Game {
         customer.order = order;
 
         showMessage(`📝 Pedido anotado: ${menuItem.emoji} ${menuItem.name} (Mesa ${tableIndex + 1})`, 3000);
+        playSound('order');
         updateOrders(this.orders.filter(o => o.state !== 'done'));
     }
 
@@ -852,6 +923,8 @@ export class Game {
         this.waiterCarryingOrder = order;
 
         showMessage(`🍽️ Prato pego! Clique na Mesa ${order.tableIndex + 1} para entregar.`, 4000);
+        playSound('click');
+        updateCarrying({ emoji: order.menuItem.emoji, name: order.menuItem.name, tableIndex: order.tableIndex });
         updateOrders(this.orders.filter(o => o.state !== 'done'));
     }
 
@@ -886,6 +959,8 @@ export class Game {
         }
 
         showMessage(`✅ Prato entregue na Mesa ${tableIndex + 1}! Cliente está comendo.`, 3000);
+        playSound('deliver');
+        updateCarrying(null);
         updateOrders(this.orders.filter(o => o.state !== 'done'));
     }
 
@@ -902,6 +977,7 @@ export class Game {
         }
 
         this.state.score += 5;
+        playSound('clean');
         showMessage(`🧹 Mesa ${tableIndex + 1} limpa e pronta!`, 2000);
     }
 

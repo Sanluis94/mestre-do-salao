@@ -1,5 +1,7 @@
 // ==========================================
 // ui.js — HUD Updates, Particles, Screen Management
+// Enhanced with: floating money, combos, progress bars,
+// carrying indicator, satisfaction warning, sound effects
 // ==========================================
 
 // ---------- DOM REFERENCES ----------
@@ -16,14 +18,84 @@ export function initUI() {
     dom.levelComplete = document.getElementById('level-complete');
     dom.gameOver = document.getElementById('game-over');
     dom.pauseOverlay = document.getElementById('pause-overlay');
+    dom.floatingMoneyContainer = document.getElementById('floating-money-container');
+    dom.comboIndicator = document.getElementById('combo-indicator');
+    dom.comboEmoji = document.getElementById('combo-emoji');
+    dom.comboText = document.getElementById('combo-text');
+    dom.carryingIndicator = document.getElementById('carrying-indicator');
+    dom.carryingText = document.getElementById('carrying-text');
+    dom.satisfactionWarning = document.getElementById('satisfaction-warning');
+
+    // Initialize sound system
+    initSounds();
+}
+
+// ---------- SOUND EFFECTS (Web Audio API) ----------
+let audioCtx = null;
+const sounds = {};
+
+function initSounds() {
+    try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) {
+        console.warn('Web Audio API not supported');
+    }
+}
+
+function ensureAudioCtx() {
+    if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+}
+
+function playTone(freq, duration = 0.15, type = 'sine', volume = 0.15) {
+    if (!audioCtx) return;
+    ensureAudioCtx();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+}
+
+export function playSound(name) {
+    switch (name) {
+        case 'click':      playTone(800, 0.08, 'sine', 0.1); break;
+        case 'seat':        playTone(523, 0.12, 'sine', 0.12); setTimeout(() => playTone(659, 0.12, 'sine', 0.12), 100); break;
+        case 'order':       playTone(440, 0.1, 'triangle', 0.1); setTimeout(() => playTone(550, 0.1, 'triangle', 0.1), 80); break;
+        case 'ready':       playTone(660, 0.15, 'sine', 0.15); setTimeout(() => playTone(880, 0.2, 'sine', 0.15), 120); break;
+        case 'deliver':     playTone(523, 0.1, 'sine', 0.12); setTimeout(() => playTone(659, 0.1, 'sine', 0.12), 80); setTimeout(() => playTone(784, 0.15, 'sine', 0.12), 160); break;
+        case 'money':       playTone(1047, 0.08, 'square', 0.08); setTimeout(() => playTone(1319, 0.12, 'square', 0.08), 60); break;
+        case 'combo':       playTone(880, 0.1, 'sawtooth', 0.08); setTimeout(() => playTone(1100, 0.1, 'sawtooth', 0.08), 70); setTimeout(() => playTone(1320, 0.15, 'sawtooth', 0.1), 140); break;
+        case 'angry':       playTone(200, 0.3, 'sawtooth', 0.1); break;
+        case 'clean':       playTone(400, 0.08, 'sine', 0.08); setTimeout(() => playTone(500, 0.08, 'sine', 0.08), 60); break;
+        case 'levelup':     [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => playTone(f, 0.2, 'sine', 0.15), i * 120)); break;
+        case 'gameover':    playTone(300, 0.4, 'sawtooth', 0.12); setTimeout(() => playTone(200, 0.5, 'sawtooth', 0.1), 300); break;
+    }
 }
 
 // ---------- HUD UPDATE ----------
+let prevMoney = 0;
 export function updateHUD(state) {
     if (!dom.hudMoney) return;
+
+    // Animate money change
+    if (state.money !== prevMoney) {
+        dom.hudMoney.style.animation = 'none';
+        dom.hudMoney.offsetHeight;
+        dom.hudMoney.style.animation = 'shakeHud 0.3s ease-out';
+        prevMoney = state.money;
+    }
+
     dom.hudMoney.textContent = `R$ ${state.money}`;
     dom.hudScore.textContent = state.score;
     dom.hudSatisfaction.style.width = `${Math.max(0, Math.min(100, state.satisfaction))}%`;
+
     // Color the satisfaction bar
     if (state.satisfaction > 60) {
         dom.hudSatisfaction.style.background = 'linear-gradient(90deg, #4CAF50, #66BB6A)';
@@ -32,13 +104,38 @@ export function updateHUD(state) {
     } else {
         dom.hudSatisfaction.style.background = 'linear-gradient(90deg, #E53935, #EF5350)';
     }
+
+    // Satisfaction warning
+    if (dom.satisfactionWarning) {
+        if (state.satisfaction <= 30) {
+            dom.satisfactionWarning.classList.remove('hidden');
+            dom.satisfactionWarning.classList.add('active');
+        } else {
+            dom.satisfactionWarning.classList.add('hidden');
+            dom.satisfactionWarning.classList.remove('active');
+        }
+    }
+
     const mins = Math.floor(state.timeLeft / 60);
     const secs = Math.floor(state.timeLeft % 60);
     dom.hudTime.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+    // Flash time when low
+    if (state.timeLeft <= 15) {
+        dom.hudTime.style.color = '#E53935';
+        dom.hudTime.style.animation = 'shakeHud 0.5s ease-out infinite';
+    } else if (state.timeLeft <= 30) {
+        dom.hudTime.style.color = '#FF9800';
+        dom.hudTime.style.animation = '';
+    } else {
+        dom.hudTime.style.color = '#FF9800';
+        dom.hudTime.style.animation = '';
+    }
+
     dom.hudLevel.textContent = state.level;
 }
 
-// ---------- ORDERS PANEL ----------
+// ---------- ORDERS PANEL (with progress bars) ----------
 export function updateOrders(orders) {
     if (!dom.ordersList) return;
     dom.ordersList.innerHTML = '';
@@ -50,19 +147,78 @@ export function updateOrders(orders) {
 
         const statusText = order.state === 'cooking' ? '🔥 Preparando...' :
                            order.state === 'ready' ? '✅ Pronto!' :
-                           order.state === 'taken' ? '📝 Registrado' : '';
+                           order.state === 'taken' ? '📝 Registrado' :
+                           order.state === 'delivered' ? '🍽️ Entregue' : '';
         const statusClass = order.state === 'cooking' ? 'status-cooking' :
                             order.state === 'ready' ? 'status-ready' : '';
 
+        // Calculate cooking progress
+        let progressHTML = '';
+        if (order.state === 'cooking' && order.cookTime && order.cookTimer !== undefined) {
+            const total = order.menuItem.cookTime;
+            const elapsed = total - order.cookTimer;
+            const pct = Math.min(100, (elapsed / total) * 100);
+            progressHTML = `<div class="order-progress"><div class="order-progress-fill" style="width: ${pct}%"></div></div>`;
+        } else if (order.state === 'ready') {
+            progressHTML = `<div class="order-progress"><div class="order-progress-fill done" style="width: 100%"></div></div>`;
+        }
+
         div.innerHTML = `
-            <div>
+            <div style="flex:1">
                 <div class="order-name">${order.menuItem.emoji} ${order.menuItem.name}</div>
                 <div class="order-table">Mesa ${order.tableIndex + 1}</div>
+                ${progressHTML}
             </div>
             <div class="order-status ${statusClass}">${statusText}</div>
         `;
         dom.ordersList.appendChild(div);
     });
+}
+
+// ---------- FLOATING MONEY POPUP ----------
+export function showFloatingMoney(amount, x, y, type = 'normal') {
+    if (!dom.floatingMoneyContainer) return;
+    const el = document.createElement('div');
+    el.className = `floating-money ${type === 'bonus' ? 'bonus' : ''} ${type === 'combo' ? 'combo-bonus' : ''}`;
+    el.textContent = type === 'combo' ? `🔥 COMBO +R$ ${amount}` : `+R$ ${amount}`;
+    el.style.left = `${x || 50}%`;
+    el.style.top = `${y || 40}%`;
+    dom.floatingMoneyContainer.appendChild(el);
+    setTimeout(() => el.remove(), 1900);
+}
+
+// ---------- COMBO INDICATOR ----------
+let comboTimeout = null;
+export function updateCombo(combo) {
+    if (!dom.comboIndicator) return;
+    if (combo >= 2) {
+        const emojis = ['🔥', '💥', '⚡', '🌟', '💎'];
+        dom.comboEmoji.textContent = emojis[Math.min(combo - 2, emojis.length - 1)];
+        dom.comboText.textContent = `COMBO x${combo}`;
+        dom.comboIndicator.classList.remove('hidden');
+        // Re-trigger animation
+        dom.comboIndicator.style.animation = 'none';
+        dom.comboIndicator.offsetHeight;
+        dom.comboIndicator.style.animation = 'comboPulse 0.6s ease-out';
+
+        if (comboTimeout) clearTimeout(comboTimeout);
+        comboTimeout = setTimeout(() => {
+            dom.comboIndicator.classList.add('hidden');
+        }, 4000);
+    } else {
+        dom.comboIndicator.classList.add('hidden');
+    }
+}
+
+// ---------- CARRYING INDICATOR ----------
+export function updateCarrying(item) {
+    if (!dom.carryingIndicator) return;
+    if (item) {
+        dom.carryingText.textContent = `🍽️ Carregando: ${item.emoji} ${item.name} → Mesa ${item.tableIndex + 1}`;
+        dom.carryingIndicator.classList.remove('hidden');
+    } else {
+        dom.carryingIndicator.classList.add('hidden');
+    }
 }
 
 // ---------- MESSAGE BAR ----------
@@ -97,6 +253,7 @@ export function showLevelComplete(stats) {
     document.getElementById('result-money').textContent = `R$ ${stats.money}`;
     document.getElementById('result-satisfaction').textContent = `${Math.round(stats.satisfaction)}%`;
     dom.levelComplete.classList.remove('hidden');
+    playSound('levelup');
 }
 export function hideLevelComplete() { dom.levelComplete.classList.add('hidden'); }
 
@@ -105,6 +262,7 @@ export function showGameOver(stats) {
     document.getElementById('go-score').textContent = stats.score;
     document.getElementById('go-money').textContent = `R$ ${stats.money}`;
     dom.gameOver.classList.remove('hidden');
+    playSound('gameover');
 }
 export function hideGameOver() { dom.gameOver.classList.add('hidden'); }
 

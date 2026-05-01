@@ -359,6 +359,163 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: var(--fon
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
 
+/* ==========================================
+   NEW: Cooking Progress Bar (inside orders panel)
+   ========================================== */
+.order-progress {
+    width: 100%; height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    margin-top: 4px;
+    overflow: hidden;
+}
+.order-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #FF9800, #FFD54F);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+.order-progress-fill.done {
+    background: linear-gradient(90deg, #4CAF50, #81C784);
+}
+
+/* ==========================================
+   NEW: Floating Money Popup
+   ========================================== */
+#floating-money-container {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    z-index: 30;
+    overflow: hidden;
+}
+.floating-money {
+    position: absolute;
+    font-family: var(--font-body);
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #4CAF50;
+    text-shadow: 0 0 10px rgba(76,175,80,0.5), 0 2px 4px rgba(0,0,0,0.6);
+    pointer-events: none;
+    animation: floatMoneyUp 1.8s ease-out forwards;
+    white-space: nowrap;
+}
+.floating-money.bonus {
+    color: var(--gold-light);
+    text-shadow: 0 0 10px rgba(218,165,32,0.5), 0 2px 4px rgba(0,0,0,0.6);
+}
+.floating-money.combo-bonus {
+    color: #FF6B6B;
+    font-size: 1.6rem;
+    text-shadow: 0 0 12px rgba(255,107,107,0.6), 0 2px 4px rgba(0,0,0,0.6);
+}
+
+/* ==========================================
+   NEW: Combo Indicator
+   ========================================== */
+.combo-indicator {
+    position: absolute;
+    top: 60px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 25;
+    display: flex; align-items: center; gap: 8px;
+    background: linear-gradient(135deg, rgba(255,107,107,0.2), rgba(255,69,0,0.15));
+    border: 1px solid rgba(255,107,107,0.3);
+    border-radius: 30px;
+    padding: 8px 20px;
+    backdrop-filter: blur(10px);
+    animation: comboPulse 0.6s ease-out;
+    transition: all 0.3s;
+}
+.combo-indicator.hidden { display: none; }
+.combo-indicator #combo-emoji { font-size: 1.3rem; }
+.combo-indicator #combo-text {
+    font-weight: 800;
+    font-size: 1.1rem;
+    background: linear-gradient(135deg, #FF6B6B, #FFD93D);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 0.05em;
+}
+
+/* ==========================================
+   NEW: Carrying Indicator
+   ========================================== */
+.carrying-indicator {
+    position: absolute;
+    bottom: 60px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 25;
+    background: linear-gradient(135deg, rgba(76,175,80,0.2), rgba(56,142,60,0.15));
+    border: 1px solid rgba(76,175,80,0.3);
+    border-radius: 20px;
+    padding: 6px 18px;
+    backdrop-filter: blur(10px);
+    animation: slideIn 0.3s ease-out;
+}
+.carrying-indicator.hidden { display: none; }
+.carrying-indicator #carrying-text {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #A5D6A7;
+}
+
+/* ==========================================
+   NEW: Satisfaction Warning Flash
+   ========================================== */
+.satisfaction-warning {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    z-index: 15;
+    border: 4px solid transparent;
+    border-radius: 0;
+    transition: border-color 0.3s;
+}
+.satisfaction-warning.active {
+    border-color: rgba(229,57,53,0.4);
+    animation: warningPulse 1.5s ease-in-out infinite;
+}
+.satisfaction-warning.hidden { display: none; }
+
+/* ==========================================
+   ANIMATIONS
+   ========================================== */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+@keyframes pulse-border {
+    0%, 100% { border-left-color: var(--green); }
+    50% { border-left-color: #81C784; }
+}
+@keyframes floatMoneyUp {
+    0% { opacity: 1; transform: translateY(0) scale(0.5); }
+    20% { opacity: 1; transform: translateY(-15px) scale(1.1); }
+    100% { opacity: 0; transform: translateY(-90px) scale(0.8); }
+}
+@keyframes comboPulse {
+    0% { transform: translateX(-50%) scale(0.5); opacity: 0; }
+    50% { transform: translateX(-50%) scale(1.15); }
+    100% { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+@keyframes warningPulse {
+    0%, 100% { border-color: rgba(229,57,53,0.1); }
+    50% { border-color: rgba(229,57,53,0.5); }
+}
+@keyframes shakeHud {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    75% { transform: translateX(3px); }
+}
+
 /* --- Responsive --- */
 @media (max-width: 768px) {
     .game-title { font-size: 2.5rem; }
@@ -368,4 +525,6 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: var(--fon
     #orders-panel { width: 180px; }
     .overlay-panel { padding: 1.5rem; }
     .btn-icon-only { right: 195px; }
+    .combo-indicator { top: 50px; padding: 6px 14px; }
+    .combo-indicator #combo-text { font-size: 0.9rem; }
 }
