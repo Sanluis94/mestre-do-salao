@@ -5,20 +5,30 @@ import * as THREE from 'three';
 import {
     createWaiterModel, createCustomerModel, createPlateModel,
     createDirtyTableIndicator, createPatienceBar, updatePatienceBar,
-    updateKitchenReady
+    updateKitchenReady, updateBarReady, createDrinkModel
 } from './scene.js';
 import {
     updateHUD, updateOrders, showMessage, showLevelComplete, showGameOver,
     showFloatingMoney, updateCombo, updateCarrying, playSound
 } from './ui.js';
 
-// ---------- MENU ----------
-const MENU = [
-    { id: 'prato_dia', name: 'Prato do Dia', emoji: '🍛', price: 15, cookTime: 6 },
-    { id: 'massa', name: 'Massa Especial', emoji: '🍝', price: 22, cookTime: 8 },
-    { id: 'file', name: 'Filé Premium', emoji: '🥩', price: 35, cookTime: 11 },
-    { id: 'sobremesa', name: 'Sobremesa', emoji: '🍰', price: 12, cookTime: 4 },
-    { id: 'salada', name: 'Salada Gourmet', emoji: '🥗', price: 18, cookTime: 5 },
+// ---------- FOOD MENU (prepared in Kitchen) ----------
+const FOOD_MENU = [
+    { id: 'prato_dia', name: 'Prato do Dia', emoji: '🍛', price: 15, cookTime: 6, station: 'kitchen' },
+    { id: 'massa', name: 'Massa Especial', emoji: '🍝', price: 22, cookTime: 8, station: 'kitchen' },
+    { id: 'file', name: 'Filé Premium', emoji: '🥩', price: 35, cookTime: 11, station: 'kitchen' },
+    { id: 'sobremesa', name: 'Sobremesa', emoji: '🍰', price: 12, cookTime: 4, station: 'kitchen' },
+    { id: 'salada', name: 'Salada Gourmet', emoji: '🥗', price: 18, cookTime: 5, station: 'kitchen' },
+];
+
+// ---------- DRINKS MENU (prepared at the Bar) ----------
+const DRINKS_MENU = [
+    { id: 'suco', name: 'Suco Natural', emoji: '🧃', price: 8, cookTime: 3, station: 'bar' },
+    { id: 'refrigerante', name: 'Refrigerante', emoji: '🥤', price: 6, cookTime: 2, station: 'bar' },
+    { id: 'cerveja', name: 'Cerveja Artesanal', emoji: '🍺', price: 14, cookTime: 4, station: 'bar' },
+    { id: 'vinho', name: 'Taça de Vinho', emoji: '🍷', price: 20, cookTime: 5, station: 'bar' },
+    { id: 'cocktail', name: 'Cocktail Especial', emoji: '🍹', price: 25, cookTime: 6, station: 'bar' },
+    { id: 'agua', name: 'Água Mineral', emoji: '💧', price: 4, cookTime: 1, station: 'bar' },
 ];
 
 // ---------- LEVEL CONFIG ----------
@@ -40,14 +50,24 @@ const NAV_MAX_Z = 10;
 const NAV_W = Math.ceil((NAV_MAX_X - NAV_MIN_X) / NAV_CELL);
 const NAV_H = Math.ceil((NAV_MAX_Z - NAV_MIN_Z) / NAV_CELL);
 
-// Table obstacle data (position + block radius)
+// Table obstacle data (position + block radius + approach point)
+// Approach positions are just outside the collision zone so characters can interact
 const TABLE_OBSTACLES = [
-    { x: -4, z: -3, r: 1.4 },
-    { x: 1,  z: 1,  r: 1.6 },
-    { x: -3, z: 4,  r: 1.6 },
-    { x: 4,  z: -4, r: 1.4 },
-    { x: 5,  z: 3,  r: 1.6 },
+    { x: -4, z: -3, r: 1.6, apX: -2.3, apZ: -2.0 },   // round — approach from SE
+    { x: 1,  z: 1,  r: 1.8, apX: 1.0,  apZ: -1.2 },   // square — approach from S
+    { x: -3, z: 4,  r: 1.8, apX: -0.7, apZ: 4.0 },    // square — approach from E
+    { x: 4,  z: -4, r: 1.6, apX: 2.0,  apZ: -3.5 },   // round — approach from W
+    { x: 5,  z: 3,  r: 1.8, apX: 2.8,  apZ: 3.0 },    // square — approach from W
 ];
+
+// Character collision radius used for runtime enforcement
+const CHARACTER_RADIUS = 0.3;
+
+// Get the approach position for a table (where waiter/customer walk to)
+function getTableApproach(tableIndex) {
+    const obs = TABLE_OBSTACLES[tableIndex];
+    return new THREE.Vector3(obs.apX, 0, obs.apZ);
+}
 
 function worldToGrid(wx, wz) {
     return {
@@ -88,6 +108,10 @@ function isCellWalkable(x, z) {
 
     // Kitchen counter (block area behind counter)
     if (x >= -1.8 && x <= 5.8 && z <= -halfRoom + 2.2 && z > -halfRoom + wallM) return false;
+
+    // Bar counter (right wall, x=7.8, z from -2 to 4)
+    const barX = halfRoom - 1.2; // 7.8
+    if (x >= barX - 0.8 && x <= halfRoom && z >= -2.5 && z <= 4.5) return false;
 
     // Tables (circular obstacles)
     for (const t of TABLE_OBSTACLES) {
@@ -269,16 +293,52 @@ function smoothPath(waypoints, grid) {
 }
 
 function hasLineOfSight(a, b, grid) {
-    const steps = Math.ceil(a.distanceTo(b) / (NAV_CELL * 0.5));
-    for (let i = 1; i < steps; i++) {
+    const dist = a.distanceTo(b);
+    const steps = Math.ceil(dist / (NAV_CELL * 0.4));
+    for (let i = 0; i <= steps; i++) {
         const t = i / steps;
         const x = a.x + (b.x - a.x) * t;
         const z = a.z + (b.z - a.z) * t;
+
+        // Check grid cell
         const g = worldToGrid(x, z);
         if (g.x < 0 || g.x >= NAV_W || g.z < 0 || g.z >= NAV_H) return false;
         if (grid[g.z * NAV_W + g.x]) return false;
+
+        // Also check direct distance to table obstacles (prevents cutting corners)
+        for (const t_obs of TABLE_OBSTACLES) {
+            const dx = x - t_obs.x;
+            const dz = z - t_obs.z;
+            if (dx * dx + dz * dz < (t_obs.r + CHARACTER_RADIUS) * (t_obs.r + CHARACTER_RADIUS)) {
+                return false;
+            }
+        }
     }
     return true;
+}
+
+// ---------- RUNTIME COLLISION ENFORCEMENT ----------
+// Push a position out of any table obstacle it overlaps
+function enforceTableCollision(position) {
+    for (const obs of TABLE_OBSTACLES) {
+        const dx = position.x - obs.x;
+        const dz = position.z - obs.z;
+        const distSq = dx * dx + dz * dz;
+        const minDist = obs.r + CHARACTER_RADIUS;
+        if (distSq < minDist * minDist) {
+            const dist = Math.sqrt(distSq);
+            if (dist < 0.001) {
+                // Exactly on center, push in arbitrary direction
+                position.x = obs.x + minDist;
+            } else {
+                // Push outward along the radial direction
+                const nx = dx / dist;
+                const nz = dz / dist;
+                position.x = obs.x + nx * minDist;
+                position.z = obs.z + nz * minDist;
+            }
+        }
+    }
 }
 
 // ---------- GAME CLASS ----------
@@ -288,6 +348,7 @@ export class Game {
         this.camera = camera;
         this.tables = restaurantData.tables;
         this.kitchen = restaurantData.kitchen;
+        this.bar = restaurantData.bar;
         this.doorPosition = restaurantData.doorPosition;
 
         this.state = {
@@ -386,6 +447,8 @@ export class Game {
         this.waiterActionQueue = [];
         // Reset kitchen ready indicator
         updateKitchenReady(this.kitchen, false);
+        // Reset bar ready indicator
+        updateBarReady(this.bar, false);
         // Reset combo
         this.combo = 0;
         this.comboTimer = 0;
@@ -448,9 +511,13 @@ export class Game {
             return;
         }
 
-        // Update kitchen ready indicator
-        const hasReadyOrders = this.orders.some(o => o.state === 'ready');
-        updateKitchenReady(this.kitchen, hasReadyOrders);
+        // Update kitchen ready indicator (food only)
+        const hasReadyFood = this.orders.some(o => o.state === 'ready' && o.menuItem.station === 'kitchen');
+        updateKitchenReady(this.kitchen, hasReadyFood);
+
+        // Update bar ready indicator (drinks only)
+        const hasReadyDrinks = this.orders.some(o => o.state === 'ready' && o.menuItem.station === 'bar');
+        updateBarReady(this.bar, hasReadyDrinks);
 
         // Update combo timer
         if (this.comboTimer > 0) {
@@ -613,6 +680,7 @@ export class Game {
                 } else {
                     dir.normalize().multiplyScalar(Math.min(dt * 4, dist));
                     c.model.position.add(dir);
+                    enforceTableCollision(c.model.position);
                     c.model.lookAt(wp.x, c.model.position.y, wp.z);
                 }
             }
@@ -634,6 +702,11 @@ export class Game {
             this.scene.remove(table.foodPlate);
             table.foodPlate = null;
         }
+        // Remove drink glass
+        if (table.drinkGlass) {
+            this.scene.remove(table.drinkGlass);
+            table.drinkGlass = null;
+        }
         // Mark table dirty
         table.state = 'dirty';
         table.customerRef = null;
@@ -643,10 +716,10 @@ export class Game {
         this.scene.add(dirtyInd);
         table.dirtyIndicator = dirtyInd;
 
-        // Money & score with combo system
-        const order = this.orders.find(o => o.tableIndex === customer.tableIndex && o.state === 'delivered');
-        if (order) {
-            const earned = order.menuItem.price;
+        // Money & score with combo system — sum all delivered orders for this table
+        const deliveredOrders = this.orders.filter(o => o.tableIndex === customer.tableIndex && o.state === 'delivered');
+        if (deliveredOrders.length > 0) {
+            const earned = deliveredOrders.reduce((sum, o) => sum + o.menuItem.price, 0);
             const patienceRatio = customer.patience / customer.maxPatience;
             const patienceBonus = Math.round(patienceRatio * 10);
 
@@ -696,6 +769,7 @@ export class Game {
             if (comboBonus > 0) msg += ` + R$ ${comboBonus} combo x${comboMultiplier}`;
             msg += ` | +${patienceBonus} bônus agilidade`;
             showMessage(msg, 4000);
+            deliveredOrders.forEach(o => o.state = 'done');
         }
         this.customersServed++;
         updateOrders(this.orders.filter(o => o.state !== 'done'));
@@ -709,7 +783,8 @@ export class Game {
                 if (order.cookTimer <= 0) {
                     order.state = 'ready';
                     playSound('ready');
-                    showMessage(`✅ ${order.menuItem.emoji} ${order.menuItem.name} está pronto! Clique no balcão.`, 4000);
+                    const stationLabel = order.menuItem.station === 'bar' ? 'Bar 🍺' : 'Cozinha 🍳';
+                    showMessage(`✅ ${order.menuItem.emoji} ${order.menuItem.name} está pronto! Retire no ${stationLabel}.`, 4000);
                 }
             }
         });
@@ -756,6 +831,9 @@ export class Game {
         dir.normalize().multiplyScalar(Math.min(dt * this.waiterSpeed, dist));
         this.waiter.position.add(dir);
 
+        // Enforce collision so waiter slides around tables
+        enforceTableCollision(this.waiter.position);
+
         // Look ahead (use next waypoint if close to current for smoother rotation)
         const lookTarget = (dist < 1.0 && this.waiterPathIdx < this.waiterPath.length - 1)
             ? this.waiterPath[this.waiterPathIdx + 1]
@@ -792,6 +870,9 @@ export class Game {
             case 'pickup_food':
                 this.pickupFood(action.orderId);
                 break;
+            case 'pickup_drink':
+                this.pickupDrink(action.orderId);
+                break;
             case 'deliver_food':
                 this.deliverFood(action.tableIndex);
                 break;
@@ -822,32 +903,37 @@ export class Game {
         table.customerRef = customer;
         customer.tableIndex = tableIndex;
 
-        // Move customer to table position
+        // Visual seat position (where the customer model will visually sit)
         const seatPos = table.position.clone();
         seatPos.x += (table.type === 'round' ? 1.2 : 0);
         seatPos.z += (table.type === 'round' ? 0 : 1.2);
 
-        this.moveWaiterTo(table.position, {
+        // Approach position (outside collision zone — where pathfinding targets)
+        const approachPos = getTableApproach(tableIndex);
+
+        this.moveWaiterTo(approachPos, {
             type: 'seat_customer',
             customerId,
             tableIndex,
         });
 
-        // Animate customer following
-        this.animateCustomerToTable(customer, seatPos);
+        // Animate customer: navigate to approach point, then snap to visual seat
+        this.animateCustomerToTable(customer, approachPos, seatPos);
     }
 
-    animateCustomerToTable(customer, targetPos) {
-        // Compute A* path for the customer too
-        const path = findWorldPath(this.navGrid, customer.model.position, targetPos);
+    animateCustomerToTable(customer, navTarget, visualSeat) {
+        // Compute A* path to the approach point (outside collision zone)
+        const path = findWorldPath(this.navGrid, customer.model.position, navTarget);
         let pathIdx = 0;
-        const speed = 3.5; // customer walks slower than waiter
+        const speed = 3.5;
         let lastTime = performance.now();
 
         const animate = () => {
             if (customer.state === 'leaving' || !customer.model.parent) return;
             if (pathIdx >= path.length) {
-                customer.model.position.copy(targetPos);
+                // Arrived at approach point — snap directly to visual seat
+                customer.model.position.copy(visualSeat);
+                customer.model.position.y = 0;
                 return;
             }
 
@@ -862,12 +948,15 @@ export class Game {
             if (dist < 0.4) {
                 pathIdx++;
                 if (pathIdx >= path.length) {
-                    customer.model.position.copy(targetPos);
+                    // Snap to visual seat
+                    customer.model.position.copy(visualSeat);
+                    customer.model.position.y = 0;
                     return;
                 }
             } else {
                 dir.normalize().multiplyScalar(Math.min(dt * speed, dist));
                 customer.model.position.add(dir);
+                enforceTableCollision(customer.model.position);
                 customer.model.lookAt(wp.x, customer.model.position.y, wp.z);
             }
 
@@ -889,22 +978,35 @@ export class Game {
         const customer = table.customerRef;
         if (!customer || customer.state !== 'seated') return;
 
-        // Random menu item
-        const menuItem = MENU[Math.floor(Math.random() * MENU.length)];
-        const order = {
+        // Each customer orders one food item AND one drink
+        const foodItem = FOOD_MENU[Math.floor(Math.random() * FOOD_MENU.length)];
+        const drinkItem = DRINKS_MENU[Math.floor(Math.random() * DRINKS_MENU.length)];
+
+        const foodOrder = {
             id: this.orderIdCounter++,
-            menuItem,
+            menuItem: foodItem,
             tableIndex,
             state: 'cooking',
-            cookTimer: menuItem.cookTime,
+            cookTimer: foodItem.cookTime,
         };
 
-        this.orders.push(order);
-        table.orderRef = order;
-        customer.state = 'waiting_food';
-        customer.order = order;
+        const drinkOrder = {
+            id: this.orderIdCounter++,
+            menuItem: drinkItem,
+            tableIndex,
+            state: 'cooking',
+            cookTimer: drinkItem.cookTime,
+        };
 
-        showMessage(`📝 Pedido anotado: ${menuItem.emoji} ${menuItem.name} (Mesa ${tableIndex + 1})`, 3000);
+        this.orders.push(foodOrder);
+        this.orders.push(drinkOrder);
+        table.orderRef = foodOrder; // primary order reference
+        table.drinkOrderRef = drinkOrder;
+        customer.state = 'waiting_food';
+        customer.order = foodOrder;
+        customer.drinkOrder = drinkOrder;
+
+        showMessage(`📝 Pedido anotado: ${foodItem.emoji} ${foodItem.name} + ${drinkItem.emoji} ${drinkItem.name} (Mesa ${tableIndex + 1})`, 4000);
         playSound('order');
         updateOrders(this.orders.filter(o => o.state !== 'done'));
     }
@@ -922,7 +1024,26 @@ export class Game {
         this.waiterCarrying = plate;
         this.waiterCarryingOrder = order;
 
-        showMessage(`🍽️ Prato pego! Clique na Mesa ${order.tableIndex + 1} para entregar.`, 4000);
+        showMessage(`🍳 Prato pego da Cozinha! Clique na Mesa ${order.tableIndex + 1} para entregar.`, 4000);
+        playSound('click');
+        updateCarrying({ emoji: order.menuItem.emoji, name: order.menuItem.name, tableIndex: order.tableIndex });
+        updateOrders(this.orders.filter(o => o.state !== 'done'));
+    }
+
+    pickupDrink(orderId) {
+        const order = this.orders.find(o => o.id === orderId);
+        if (!order || order.state !== 'ready') return;
+
+        order.state = 'carrying';
+
+        // Visual: drink glass on waiter
+        const glass = createDrinkModel();
+        glass.position.set(0, 0.3, 0.3);
+        this.waiter.add(glass);
+        this.waiterCarrying = glass;
+        this.waiterCarryingOrder = order;
+
+        showMessage(`🍺 Bebida pega do Bar! Clique na Mesa ${order.tableIndex + 1} para entregar.`, 4000);
         playSound('click');
         updateCarrying({ emoji: order.menuItem.emoji, name: order.menuItem.name, tableIndex: order.tableIndex });
         updateOrders(this.orders.filter(o => o.state !== 'done'));
@@ -931,34 +1052,51 @@ export class Game {
     deliverFood(tableIndex) {
         const order = this.waiterCarryingOrder;
         if (!order || order.tableIndex !== tableIndex) {
-            showMessage('⚠️ Este prato não é para esta mesa!', 2000);
+            showMessage('⚠️ Este pedido não é para esta mesa!', 2000);
             return;
         }
 
-        // Remove plate from waiter
+        // Remove carried item from waiter
         if (this.waiterCarrying) {
             this.waiter.remove(this.waiterCarrying);
             this.waiterCarrying = null;
         }
 
-        // Add plate to table
         const table = this.tables[tableIndex];
-        const foodPlate = createPlateModel();
-        foodPlate.position.copy(table.position);
-        this.scene.add(foodPlate);
-        table.foodPlate = foodPlate;
+        const isDrink = order.menuItem.station === 'bar';
+
+        // Add visual to table
+        if (isDrink) {
+            const drinkGlass = createDrinkModel();
+            drinkGlass.position.copy(table.position);
+            drinkGlass.position.x += 0.35;
+            this.scene.add(drinkGlass);
+            table.drinkGlass = drinkGlass;
+        } else {
+            const foodPlate = createPlateModel();
+            foodPlate.position.copy(table.position);
+            this.scene.add(foodPlate);
+            table.foodPlate = foodPlate;
+        }
 
         order.state = 'delivered';
         this.waiterCarryingOrder = null;
 
-        // Customer starts eating
+        // Check if ALL orders for this table are delivered
+        const tableOrders = this.orders.filter(o => o.tableIndex === tableIndex && o.state !== 'done');
+        const allDelivered = tableOrders.every(o => o.state === 'delivered');
+
+        // Customer starts eating only when both food and drink are delivered
         const customer = table.customerRef;
-        if (customer) {
+        if (customer && allDelivered) {
             customer.state = 'eating';
             customer.eatTimer = 6 + Math.random() * 4;
+            showMessage(`✅ Pedido completo na Mesa ${tableIndex + 1}! Cliente está comendo.`, 3000);
+        } else {
+            const stationName = isDrink ? 'Bebida' : 'Prato';
+            showMessage(`✅ ${stationName} entregue na Mesa ${tableIndex + 1}! Falta ${isDrink ? 'o prato (Cozinha)' : 'a bebida (Bar)'}.`, 3000);
         }
 
-        showMessage(`✅ Prato entregue na Mesa ${tableIndex + 1}! Cliente está comendo.`, 3000);
         playSound('deliver');
         updateCarrying(null);
         updateOrders(this.orders.filter(o => o.state !== 'done'));
@@ -969,11 +1107,17 @@ export class Game {
         table.state = 'empty';
         table.customerRef = null;
         table.orderRef = null;
+        table.drinkOrderRef = null;
 
         // Remove dirty indicator
         if (table.dirtyIndicator) {
             this.scene.remove(table.dirtyIndicator);
             table.dirtyIndicator = null;
+        }
+        // Remove drink glass
+        if (table.drinkGlass) {
+            this.scene.remove(table.drinkGlass);
+            table.drinkGlass = null;
         }
 
         this.state.score += 5;
@@ -1015,9 +1159,10 @@ export class Game {
             if (type === 'table') {
                 const tableIndex = current.userData.index;
                 const table = this.tables[tableIndex];
+                const approachPos = getTableApproach(tableIndex);
 
                 if (table.state === 'dirty') {
-                    this.moveWaiterTo(table.position, {
+                    this.moveWaiterTo(approachPos, {
                         type: 'clean_table',
                         tableIndex,
                     });
@@ -1029,7 +1174,7 @@ export class Game {
 
                     // If carrying food → deliver
                     if (this.waiterCarrying && this.waiterCarryingOrder) {
-                        this.moveWaiterTo(table.position, {
+                        this.moveWaiterTo(approachPos, {
                             type: 'deliver_food',
                             tableIndex,
                         });
@@ -1038,7 +1183,7 @@ export class Game {
 
                     // If customer is seated → take order
                     if (customer && customer.state === 'seated') {
-                        this.moveWaiterTo(table.position, {
+                        this.moveWaiterTo(approachPos, {
                             type: 'take_order',
                             tableIndex,
                         });
@@ -1062,21 +1207,40 @@ export class Game {
                 }
             }
 
-            // Click on kitchen
+            // Click on kitchen (food only)
             if (type === 'kitchen') {
-                const readyOrder = this.orders.find(o => o.state === 'ready');
-                if (readyOrder) {
+                const readyFood = this.orders.find(o => o.state === 'ready' && o.menuItem.station === 'kitchen');
+                if (readyFood) {
                     this.moveWaiterTo(this.kitchen.position, {
                         type: 'pickup_food',
-                        orderId: readyOrder.id,
+                        orderId: readyFood.id,
                     });
                     return;
                 }
 
-                if (this.orders.some(o => o.state === 'cooking')) {
-                    showMessage('🔥 Pedidos ainda estão sendo preparados...', 2000);
+                if (this.orders.some(o => o.state === 'cooking' && o.menuItem.station === 'kitchen')) {
+                    showMessage('🔥 Pratos ainda estão sendo preparados na Cozinha...', 2000);
                 } else {
-                    showMessage('Nenhum pedido pendente na cozinha.', 2000);
+                    showMessage('🍳 Nenhum prato pendente na Cozinha.', 2000);
+                }
+                return;
+            }
+
+            // Click on bar (drinks only)
+            if (type === 'bar') {
+                const readyDrink = this.orders.find(o => o.state === 'ready' && o.menuItem.station === 'bar');
+                if (readyDrink) {
+                    this.moveWaiterTo(this.bar.position, {
+                        type: 'pickup_drink',
+                        orderId: readyDrink.id,
+                    });
+                    return;
+                }
+
+                if (this.orders.some(o => o.state === 'cooking' && o.menuItem.station === 'bar')) {
+                    showMessage('🍺 Bebidas ainda estão sendo preparadas no Bar...', 2000);
+                } else {
+                    showMessage('🍺 Nenhuma bebida pendente no Bar.', 2000);
                 }
                 return;
             }

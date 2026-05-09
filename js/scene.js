@@ -80,6 +80,17 @@ const materials = {
     painting: new THREE.MeshStandardMaterial({ color: 0x2A4A3A, roughness: 0.5 }),
     paintingFrame: new THREE.MeshStandardMaterial({ color: 0x8B7355, roughness: 0.4, metalness: 0.2 }),
     doorIndicator: new THREE.MeshStandardMaterial({ color: 0x44FF44, emissive: 0x22CC22, emissiveIntensity: 0.8, roughness: 0.3 }),
+    // Bar materials
+    barWood: new THREE.MeshStandardMaterial({ color: 0x3B1E0E, roughness: 0.5 }),
+    barTop: new THREE.MeshStandardMaterial({ color: 0x1A1A2E, roughness: 0.15, metalness: 0.5 }),
+    barShelf: new THREE.MeshStandardMaterial({ color: 0x4A2A1A, roughness: 0.4, metalness: 0.1 }),
+    barMetal: new THREE.MeshStandardMaterial({ color: 0xAAAAAA, roughness: 0.2, metalness: 0.8 }),
+    barNeon: new THREE.MeshStandardMaterial({ color: 0x00CCFF, emissive: 0x0088CC, emissiveIntensity: 0.9, roughness: 0.3 }),
+    bottleGreen: new THREE.MeshStandardMaterial({ color: 0x1A5A2A, roughness: 0.3, metalness: 0.2, transparent: true, opacity: 0.85 }),
+    bottleAmber: new THREE.MeshStandardMaterial({ color: 0x8B5E3C, roughness: 0.3, metalness: 0.2, transparent: true, opacity: 0.85 }),
+    bottleClear: new THREE.MeshStandardMaterial({ color: 0xCCDDEE, roughness: 0.2, metalness: 0.3, transparent: true, opacity: 0.6 }),
+    glassBody: new THREE.MeshStandardMaterial({ color: 0xDDEEFF, roughness: 0.1, metalness: 0.3, transparent: true, opacity: 0.5 }),
+    drinkLiquid: new THREE.MeshStandardMaterial({ color: 0xFFAA22, roughness: 0.4, transparent: true, opacity: 0.7 }),
 };
 
 // ---------- BUILD RESTAURANT ----------
@@ -362,11 +373,138 @@ export function createRestaurant(scn) {
         readyOrders: [],
     };
 
+    // --- BAR COUNTER (right wall) ---
+    const barGroup = new THREE.Group();
+    barGroup.userData = { type: 'bar' };
+    const barX = halfRoom - 1.2;
+    const barZStart = -2;
+    const barLength = 6;
+
+    // Main bar body
+    const barBody = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.6, barLength), materials.barWood);
+    barBody.position.set(barX, 0.8, barZStart + barLength / 2);
+    barBody.castShadow = true;
+    barGroup.add(barBody);
+
+    // Bar top surface (dark polished)
+    const barTopMesh = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.1, barLength + 0.1), materials.barTop);
+    barTopMesh.position.set(barX, 1.62, barZStart + barLength / 2);
+    barGroup.add(barTopMesh);
+
+    // Bar foot rail (brass rail at bottom)
+    const footRail = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, barLength - 0.4, 8),
+        materials.barMetal);
+    footRail.rotation.x = Math.PI / 2;
+    footRail.position.set(barX - 0.6, 0.2, barZStart + barLength / 2);
+    barGroup.add(footRail);
+
+    // Back wall bar panel
+    const barBackPanel = new THREE.Mesh(new THREE.BoxGeometry(0.2, 4.5, barLength + 0.2),
+        new THREE.MeshStandardMaterial({ color: 0x2A1A0E, roughness: 0.5 }));
+    barBackPanel.position.set(halfRoom - 0.15, 2.8, barZStart + barLength / 2);
+    barGroup.add(barBackPanel);
+
+    // Bottle shelves (3 tiers)
+    for (let tier = 0; tier < 3; tier++) {
+        const shelfY = 2.0 + tier * 1.0;
+        const shelf = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.06, barLength - 0.6), materials.barShelf);
+        shelf.position.set(halfRoom - 0.35, shelfY, barZStart + barLength / 2);
+        barGroup.add(shelf);
+
+        // Bottles on shelf
+        const bottleMats = [materials.bottleGreen, materials.bottleAmber, materials.bottleClear];
+        const bottleCount = 5 + tier;
+        for (let b = 0; b < bottleCount; b++) {
+            const bMat = bottleMats[b % bottleMats.length];
+            const bottleH = 0.4 + Math.random() * 0.15;
+            const bottle = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, bottleH, 8), bMat);
+            const bz = barZStart + 0.6 + b * ((barLength - 1.2) / bottleCount);
+            bottle.position.set(halfRoom - 0.35, shelfY + 0.03 + bottleH / 2, bz);
+            barGroup.add(bottle);
+            // Bottle neck
+            const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.04, 0.12, 6), bMat);
+            neck.position.set(halfRoom - 0.35, shelfY + 0.03 + bottleH + 0.06, bz);
+            barGroup.add(neck);
+        }
+    }
+
+    // Beer taps (3 taps)
+    for (let t = 0; t < 3; t++) {
+        const tapZ = barZStart + 1.5 + t * 1.5;
+        // Tap base
+        const tapBase = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.12, 8), materials.barMetal);
+        tapBase.position.set(barX + 0.1, 1.74, tapZ);
+        barGroup.add(tapBase);
+        // Tap handle
+        const tapHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.3, 6),
+            new THREE.MeshStandardMaterial({ color: [0xCC2222, 0x22CC22, 0x2222CC][t], roughness: 0.4, metalness: 0.3 }));
+        tapHandle.position.set(barX + 0.1, 1.95, tapZ);
+        barGroup.add(tapHandle);
+        // Tap knob
+        const tapKnob = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8),
+            new THREE.MeshStandardMaterial({ color: [0xCC2222, 0x22CC22, 0x2222CC][t], roughness: 0.3 }));
+        tapKnob.position.set(barX + 0.1, 2.12, tapZ);
+        barGroup.add(tapKnob);
+    }
+
+    // Glass rack (hanging upside-down glasses)
+    for (let g = 0; g < 4; g++) {
+        const gz = barZStart + 1.0 + g * 1.3;
+        const glass = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.04, 0.15, 8), materials.glassBody);
+        glass.position.set(barX + 0.2, 3.0, gz);
+        glass.rotation.x = Math.PI; // upside down
+        barGroup.add(glass);
+    }
+
+    // Neon "BAR" sign glow
+    const neonLight = new THREE.PointLight(0x00CCFF, 0.5, 6);
+    neonLight.position.set(halfRoom - 0.4, 5.0, barZStart + barLength / 2);
+    barGroup.add(neonLight);
+
+    // Neon sign backing
+    const neonBacking = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.8, 2.5),
+        new THREE.MeshStandardMaterial({ color: 0x111122, roughness: 0.8 }));
+    neonBacking.position.set(halfRoom - 0.18, 5.0, barZStart + barLength / 2);
+    barGroup.add(neonBacking);
+
+    // Neon tube letters (simplified as glowing bar)
+    const neonTube = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.5, 1.8), materials.barNeon);
+    neonTube.position.set(halfRoom - 0.22, 5.0, barZStart + barLength / 2);
+    barGroup.add(neonTube);
+
+    // Ready drink indicator light
+    const barReadyLight = new THREE.PointLight(0x00CCFF, 0, 5);
+    barReadyLight.position.set(barX, 2.5, barZStart + barLength / 2);
+    barGroup.add(barReadyLight);
+
+    const barReadyBulb = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8),
+        new THREE.MeshStandardMaterial({ color: 0x00CCFF, emissive: 0x0088CC, emissiveIntensity: 0, transparent: true }));
+    barReadyBulb.position.set(barX - 0.4, 3.5, barZStart + 0.5);
+    barGroup.add(barReadyBulb);
+
+    // Clickable area extender for bar
+    const barClickArea = new THREE.Mesh(new THREE.BoxGeometry(2, 4, barLength + 1),
+        new THREE.MeshBasicMaterial({ visible: false }));
+    barClickArea.position.set(barX, 2, barZStart + barLength / 2);
+    barGroup.add(barClickArea);
+
+    // Bar ambient light (warm)
+    const barAmbient = new THREE.PointLight(0xFFCC88, 0.3, 5);
+    barAmbient.position.set(barX - 0.5, 2.5, barZStart + barLength / 2);
+    barGroup.add(barAmbient);
+
+    restaurant.add(barGroup);
+
+    const barData = {
+        group: barGroup,
+        position: new THREE.Vector3(barX - 1.0, 0, barZStart + barLength / 2),
+        readyLight: barReadyLight,
+        readyBulb: barReadyBulb,
+        readyOrders: [],
+    };
+
     // --- WALL PAINTINGS ---
     const paintings = [
-        { x: halfRoom - 0.14, y: 3.5, z: -3, ry: -Math.PI / 2, w: 2, h: 1.5, color: 0x2A5A4A },
-        { x: halfRoom - 0.14, y: 3.5, z: 3, ry: -Math.PI / 2, w: 1.5, h: 1.5, color: 0x4A2A3A },
-        { x: halfRoom - 0.14, y: 3.5, z: 7, ry: -Math.PI / 2, w: 1.5, h: 1.2, color: 0x3A3A5A },
         { x: -2, y: 3.5, z: -halfRoom + 0.14, ry: 0, w: 2, h: 1.5, color: 0x5A4A2A },
         { x: -6, y: 4, z: -halfRoom + 0.14, ry: 0, w: 1.2, h: 1.2, color: 0x3A5A3A },
     ];
@@ -382,7 +520,7 @@ export function createRestaurant(scn) {
 
     scn.add(restaurant);
 
-    return { restaurant, tables: tableData, kitchen: kitchenData, doorPosition };
+    return { restaurant, tables: tableData, kitchen: kitchenData, bar: barData, doorPosition };
 }
 
 // ---------- HELPER: Create Chair ----------
@@ -649,4 +787,41 @@ export function updateKitchenReady(kitchenData, hasReadyOrders) {
         kitchenData.readyBulb.material.emissiveIntensity = 0;
         kitchenData.readyBulb.material.opacity = 0.2;
     }
+}
+
+// ---------- BAR READY INDICATOR ----------
+export function updateBarReady(barData, hasReadyDrinks) {
+    if (!barData || !barData.readyLight || !barData.readyBulb) return;
+    const t = performance.now() * 0.004;
+    if (hasReadyDrinks) {
+        barData.readyLight.intensity = 1.2 + Math.sin(t) * 0.6;
+        barData.readyBulb.material.emissiveIntensity = 0.9 + Math.sin(t) * 0.4;
+        barData.readyBulb.material.opacity = 1;
+    } else {
+        barData.readyLight.intensity = 0;
+        barData.readyBulb.material.emissiveIntensity = 0;
+        barData.readyBulb.material.opacity = 0.2;
+    }
+}
+
+// ---------- DRINK GLASS MODEL ----------
+export function createDrinkModel() {
+    const group = new THREE.Group();
+    // Glass body
+    const glass = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.09, 0.28, 12),
+        materials.glassBody);
+    glass.position.y = 1.42;
+    group.add(glass);
+    // Liquid inside
+    const liquid = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.08, 0.20, 12),
+        materials.drinkLiquid);
+    liquid.position.y = 1.38;
+    group.add(liquid);
+    // Straw
+    const straw = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.35, 6),
+        new THREE.MeshStandardMaterial({ color: 0xEE3333, roughness: 0.5 }));
+    straw.position.set(0.04, 1.52, 0.02);
+    straw.rotation.z = 0.15;
+    group.add(straw);
+    return group;
 }

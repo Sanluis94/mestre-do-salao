@@ -148,9 +148,14 @@ export function updateOrders(orders) {
         const statusText = order.state === 'cooking' ? '🔥 Preparando...' :
                            order.state === 'ready' ? '✅ Pronto!' :
                            order.state === 'taken' ? '📝 Registrado' :
+                           order.state === 'carrying' ? '🏃 Levando...' :
                            order.state === 'delivered' ? '🍽️ Entregue' : '';
         const statusClass = order.state === 'cooking' ? 'status-cooking' :
                             order.state === 'ready' ? 'status-ready' : '';
+
+        // Station label
+        const station = order.menuItem?.station;
+        const stationLabel = station === 'bar' ? '🍺 Bar' : '🍳 Cozinha';
 
         // Calculate cooking progress
         let progressHTML = '';
@@ -166,7 +171,7 @@ export function updateOrders(orders) {
         div.innerHTML = `
             <div style="flex:1">
                 <div class="order-name">${order.menuItem.emoji} ${order.menuItem.name}</div>
-                <div class="order-table">Mesa ${order.tableIndex + 1}</div>
+                <div class="order-table">Mesa ${order.tableIndex + 1} · <span style="opacity:0.7">${stationLabel}</span></div>
                 ${progressHTML}
             </div>
             <div class="order-status ${statusClass}">${statusText}</div>
