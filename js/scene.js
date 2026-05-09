@@ -248,6 +248,7 @@ export function createRestaurant(scn) {
         tableGroup.userData = { type: 'table', index: idx, state: 'empty' };
         restaurant.add(tableGroup);
         tableData.push({
+            index: idx,
             group: tableGroup,
             position: new THREE.Vector3(tp.x, 0, tp.z),
             state: 'empty', // empty, occupied, dirty
