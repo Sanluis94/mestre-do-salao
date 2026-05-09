@@ -53,12 +53,17 @@ const NAV_H = Math.ceil((NAV_MAX_Z - NAV_MIN_Z) / NAV_CELL);
 // Table obstacle data (position + block radius + approach point)
 // Approach positions are just outside the collision zone so characters can interact
 const TABLE_OBSTACLES = [
-    { x: -4, z: -3, r: 1.6, apX: -1.8, apZ: -1.5 },   // round — approach from SE
-    { x: 1,  z: 1,  r: 1.8, apX: 1.0,  apZ: -1.5 },   // square — approach from S
-    { x: -3, z: 4,  r: 1.8, apX: -0.4, apZ: 3.5 },    // square — approach from E
-    { x: 4,  z: -4, r: 1.6, apX: 1.6,  apZ: -3.2 },   // round — approach from W
-    { x: 5,  z: 3,  r: 1.8, apX: 2.5,  apZ: 2.5 },    // square — approach from SW
+    { x: -4, z: -3, r: 1.6, apX: -1.8, apZ: -1.5 },   // 0: round — SE
+    { x: 1,  z: 1,  r: 1.8, apX: 1.0,  apZ: -1.5 },   // 1: square — S
+    { x: -3, z: 4,  r: 1.8, apX: -0.4, apZ: 3.5 },    // 2: square — E
+    { x: 4,  z: -4, r: 1.6, apX: 1.6,  apZ: -3.2 },   // 3: round — W
+    { x: 5,  z: 3,  r: 1.8, apX: 2.5,  apZ: 2.5 },    // 4: square — SW
+    // Progression tables:
+    { x: -6, z: 0,  r: 1.6, apX: -3.5, apZ: 0.0 },    // 5: round — E
+    { x: -1, z: -6, r: 1.8, apX: -1.0, apZ: -3.5 },   // 6: square — S
+    { x: 2,  z: 6,  r: 1.8, apX: 2.0,  apZ: 3.5 },    // 7: square — N
 ];
+window.ACTIVE_TABLES = 3; // Starts with 3 tables, unlocks more each level
 
 // Character collision radius used for runtime enforcement
 const CHARACTER_RADIUS = 0.3;
@@ -114,7 +119,8 @@ function isCellWalkable(x, z) {
     if (x >= barX - 0.8 && x <= halfRoom && z >= -2.5 && z <= 4.5) return false;
 
     // Tables (circular obstacles)
-    for (const t of TABLE_OBSTACLES) {
+    for (let i = 0; i < window.ACTIVE_TABLES; i++) {
+        const t = TABLE_OBSTACLES[i];
         const dx = x - t.x;
         const dz = z - t.z;
         if (dx * dx + dz * dz < t.r * t.r) return false;
@@ -320,7 +326,8 @@ function hasLineOfSight(a, b, grid) {
 // ---------- RUNTIME COLLISION ENFORCEMENT ----------
 // Push a position out of any table obstacle it overlaps
 function enforceTableCollision(position) {
-    for (const obs of TABLE_OBSTACLES) {
+    for (let i = 0; i < window.ACTIVE_TABLES; i++) {
+        const obs = TABLE_OBSTACLES[i];
         const dx = position.x - obs.x;
         const dz = position.z - obs.z;
         const distSq = dx * dx + dz * dz;
@@ -410,11 +417,21 @@ export class Game {
         this.scene.add(this.waiter);
         this.waiterState = 'idle';
 
-        // Reset tables
-        this.tables.forEach(t => {
-            t.state = 'empty';
-            t.customerRef = null;
-            t.orderRef = null;
+        // Rebuild navigation grid based on active tables
+        window.ACTIVE_TABLES = Math.min(2 + level, this.tables.length); // L1: 3 tables, L2: 4 tables, etc.
+        this.navGrid = buildNavGrid();
+
+        // Reset and hide/show tables based on progression
+        this.tables.forEach((t, idx) => {
+            if (idx < window.ACTIVE_TABLES) {
+                t.group.visible = true;
+                t.state = 'empty';
+                t.customerRef = null;
+                t.orderRef = null;
+            } else {
+                t.group.visible = false;
+                t.state = 'locked';
+            }
         });
 
         showMessage('Bem-vindo ao turno! Clique nos clientes na entrada para recepcioná-los.', 5000);
@@ -899,8 +916,13 @@ export class Game {
         const customer = this.customers.find(c => c.id === customerId);
         if (!customer || customer.state !== 'waiting_at_door') return;
 
-        // Find available table
-        const tableIndex = this.tables.findIndex(t => t.state === 'empty');
+        // Find available table among active tables
+        const empties = this.tables.filter((t, idx) => idx < window.ACTIVE_TABLES && t.state === 'empty');
+        let tableIndex = -1;
+        if (empties.length > 0) {
+            tableIndex = empties[Math.floor(Math.random() * empties.length)].index;
+        }
+
         if (tableIndex === -1) {
             showMessage('⚠️ Não há mesas disponíveis! Limpe as mesas sujas.', 3000);
             return;
