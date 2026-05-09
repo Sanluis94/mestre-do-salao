@@ -53,11 +53,11 @@ const NAV_H = Math.ceil((NAV_MAX_Z - NAV_MIN_Z) / NAV_CELL);
 // Table obstacle data (position + block radius + approach point)
 // Approach positions are just outside the collision zone so characters can interact
 const TABLE_OBSTACLES = [
-    { x: -4, z: -3, r: 1.6, apX: -2.3, apZ: -2.0 },   // round — approach from SE
-    { x: 1,  z: 1,  r: 1.8, apX: 1.0,  apZ: -1.2 },   // square — approach from S
-    { x: -3, z: 4,  r: 1.8, apX: -0.7, apZ: 4.0 },    // square — approach from E
-    { x: 4,  z: -4, r: 1.6, apX: 2.0,  apZ: -3.5 },   // round — approach from W
-    { x: 5,  z: 3,  r: 1.8, apX: 2.8,  apZ: 3.0 },    // square — approach from W
+    { x: -4, z: -3, r: 1.6, apX: -1.8, apZ: -1.5 },   // round — approach from SE
+    { x: 1,  z: 1,  r: 1.8, apX: 1.0,  apZ: -1.5 },   // square — approach from S
+    { x: -3, z: 4,  r: 1.8, apX: -0.4, apZ: 3.5 },    // square — approach from E
+    { x: 4,  z: -4, r: 1.6, apX: 1.6,  apZ: -3.2 },   // round — approach from W
+    { x: 5,  z: 3,  r: 1.8, apX: 2.5,  apZ: 2.5 },    // square — approach from SW
 ];
 
 // Character collision radius used for runtime enforcement
@@ -660,6 +660,14 @@ export class Game {
                 if (!c.leavePath) {
                     c.leavePath = findWorldPath(this.navGrid, c.model.position, this.doorPosition);
                     c.leavePathIdx = 0;
+                    c.leaveTimer = 0;
+                }
+
+                // Safety timeout: remove customer after 10 seconds of leaving
+                c.leaveTimer = (c.leaveTimer || 0) + dt;
+                if (c.leaveTimer > 10) {
+                    this.removeCustomer(c, i);
+                    continue;
                 }
 
                 if (c.leavePathIdx >= c.leavePath.length) {
@@ -670,8 +678,9 @@ export class Game {
                 const wp = c.leavePath[c.leavePathIdx];
                 const dir = new THREE.Vector3(wp.x - c.model.position.x, 0, wp.z - c.model.position.z);
                 const dist = dir.length();
+                const isLastWp = c.leavePathIdx >= c.leavePath.length - 1;
 
-                if (dist < 0.4) {
+                if (dist < (isLastWp ? 1.0 : 0.5)) {
                     c.leavePathIdx++;
                     if (c.leavePathIdx >= c.leavePath.length) {
                         this.removeCustomer(c, i);
@@ -680,7 +689,9 @@ export class Game {
                 } else {
                     dir.normalize().multiplyScalar(Math.min(dt * 4, dist));
                     c.model.position.add(dir);
-                    enforceTableCollision(c.model.position);
+                    if (!isLastWp) {
+                        enforceTableCollision(c.model.position);
+                    }
                     c.model.lookAt(wp.x, c.model.position.y, wp.z);
                 }
             }
@@ -811,7 +822,7 @@ export class Game {
 
         // Reached current waypoint?
         const isLastWaypoint = this.waiterPathIdx >= this.waiterPath.length - 1;
-        const arrivalDist = isLastWaypoint ? 0.3 : 0.4;
+        const arrivalDist = isLastWaypoint ? 0.8 : 0.4;
 
         if (dist < arrivalDist) {
             this.waiterPathIdx++;
@@ -831,8 +842,10 @@ export class Game {
         dir.normalize().multiplyScalar(Math.min(dt * this.waiterSpeed, dist));
         this.waiter.position.add(dir);
 
-        // Enforce collision so waiter slides around tables
-        enforceTableCollision(this.waiter.position);
+        // Enforce collision so waiter slides around tables (skip near final approach)
+        if (!isLastWaypoint) {
+            enforceTableCollision(this.waiter.position);
+        }
 
         // Look ahead (use next waypoint if close to current for smoother rotation)
         const lookTarget = (dist < 1.0 && this.waiterPathIdx < this.waiterPath.length - 1)
@@ -927,13 +940,25 @@ export class Game {
         let pathIdx = 0;
         const speed = 3.5;
         let lastTime = performance.now();
+        const startTime = performance.now();
+        const MAX_ANIM_TIME = 8000; // safety: snap after 8 seconds max
+
+        const snapToSeat = () => {
+            customer.model.position.copy(visualSeat);
+            customer.model.position.y = 0;
+        };
 
         const animate = () => {
             if (customer.state === 'leaving' || !customer.model.parent) return;
+
+            // Safety timeout — prevent infinite loops
+            if (performance.now() - startTime > MAX_ANIM_TIME) {
+                snapToSeat();
+                return;
+            }
+
             if (pathIdx >= path.length) {
-                // Arrived at approach point — snap directly to visual seat
-                customer.model.position.copy(visualSeat);
-                customer.model.position.y = 0;
+                snapToSeat();
                 return;
             }
 
@@ -945,18 +970,23 @@ export class Game {
             const dir = new THREE.Vector3(wp.x - customer.model.position.x, 0, wp.z - customer.model.position.z);
             const dist = dir.length();
 
-            if (dist < 0.4) {
+            // Use generous snap distance for last waypoint to avoid oscillation
+            const isLastWp = pathIdx >= path.length - 1;
+            const snapDist = isLastWp ? 1.0 : 0.4;
+
+            if (dist < snapDist) {
                 pathIdx++;
                 if (pathIdx >= path.length) {
-                    // Snap to visual seat
-                    customer.model.position.copy(visualSeat);
-                    customer.model.position.y = 0;
+                    snapToSeat();
                     return;
                 }
             } else {
                 dir.normalize().multiplyScalar(Math.min(dt * speed, dist));
                 customer.model.position.add(dir);
-                enforceTableCollision(customer.model.position);
+                // Skip collision enforcement near final waypoint to prevent oscillation
+                if (!isLastWp) {
+                    enforceTableCollision(customer.model.position);
+                }
                 customer.model.lookAt(wp.x, customer.model.position.y, wp.z);
             }
 
