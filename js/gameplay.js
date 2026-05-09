@@ -753,7 +753,6 @@ export class Game {
             this.state.score += totalEarned + patienceBonus;
             this.levelMoney += totalEarned;
             this.state.satisfaction = Math.min(100, this.state.satisfaction + 3 + (comboMultiplier > 1 ? 2 : 0));
-            order.state = 'done';
 
             // Floating money popups
             const baseX = 30 + Math.random() * 40;
