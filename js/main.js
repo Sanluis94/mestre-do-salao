@@ -192,7 +192,10 @@ function updateShopButtons(money) {
     setupBtn('btn-buy-file', prices.food.file, shopState.foodUnlocked.includes('file'), () => shopState.foodUnlocked.push('file'));
     setupBtn('btn-buy-refrigerante', prices.drinks.refrigerante, shopState.drinksUnlocked.includes('refrigerante'), () => shopState.drinksUnlocked.push('refrigerante'));
     setupBtn('btn-buy-cerveja', prices.drinks.cerveja, shopState.drinksUnlocked.includes('cerveja'), () => shopState.drinksUnlocked.push('cerveja'));
-    setupBtn('btn-buy-vinho', prices.drinks.vinho, shopState.drinksUnlocked.includes('vinho'), () => shopState.drinksUnlocked.push('vinho'));
+    setupBtn('btn-buy-vinho', prices.drinks.vinho, shopState.drinksUnlocked.includes('vinho'), () => {
+        shopState.drinksUnlocked.push('vinho');
+        shopState.drinksUnlocked.push('cocktail');
+    });
 }
 
 function setupShopButtons() {

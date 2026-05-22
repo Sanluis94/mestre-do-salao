@@ -527,6 +527,88 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: var(--fon
     75% { transform: translateX(3px); }
 }
 
+/* ==========================================
+   SHOP PANEL
+   ========================================== */
+.shop-panel {
+    max-width: 480px;
+    width: 95%;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+.shop-money {
+    text-align: center;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--gold-dark);
+    margin-bottom: 1.2rem;
+    padding: 10px 20px;
+    background: #FFF9F2;
+    border: 2px solid #FFE8D6;
+    border-radius: 20px;
+}
+.shop-items-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 1.2rem;
+}
+.shop-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #FFF9F2;
+    border: 2px solid #FFE8D6;
+    border-radius: 16px;
+    padding: 14px 16px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.shop-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(255,146,84,0.15);
+}
+.shop-item-info h3 {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+.shop-item-info p {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+.btn-buy {
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 8px 18px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--gold-light), var(--gold));
+    color: #635045;
+    box-shadow: 0 4px 0 var(--gold-dark);
+    transition: all 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.btn-buy:hover {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 var(--gold-dark);
+}
+.btn-buy:active {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 var(--gold-dark);
+}
+.btn-buy:disabled {
+    background: #E0D5CC;
+    color: #B8A8A0;
+    box-shadow: none;
+    cursor: not-allowed;
+    transform: none;
+}
+
 /* --- Responsive --- */
 @media (max-width: 768px) {
     .game-title { font-size: 2.2rem; }
@@ -547,7 +629,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: var(--fon
     .order-item .order-table { font-size: 0.6rem; }
     
     .overlay-panel { padding: 1.5rem; width: 95%; }
-    .btn-icon-only { right: 5px; top: 60px; width: 35px; height: 35px; font-size: 0.9rem; }
+    .btn-icon-only { right: 160px; top: 60px; width: 35px; height: 35px; font-size: 0.9rem; }
     
     .combo-indicator { top: 40px; padding: 4px 10px; }
     .combo-indicator #combo-text { font-size: 0.8rem; }
