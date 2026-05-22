@@ -191,14 +191,14 @@ export function createRestaurant(scn) {
 
     // --- TABLES ---
     const tablePositions = [
-        { x: -4, z: -3, type: 'round', seats: 2 },
-        { x: 1, z: 1, type: 'square', seats: 4 },
-        { x: -3, z: 4, type: 'square', seats: 4 },
-        { x: 4, z: -4, type: 'round', seats: 2 },
-        { x: 4, z: 3, type: 'square', seats: 4 },
+        { x: -5, z: -4, type: 'round', seats: 2 },
+        { x: 0.5, z: 1.5, type: 'square', seats: 4 },
+        { x: -4, z: 6, type: 'square', seats: 4 },
+        { x: 6, z: -4, type: 'round', seats: 2 },
+        { x: 6, z: 1.5, type: 'square', seats: 4 },
         // Progression tables:
-        { x: -6, z: 0, type: 'round', seats: 2 },
-        { x: -1, z: -4.5, type: 'square', seats: 4 },
+        { x: -5, z: 1, type: 'round', seats: 2 },
+        { x: 0, z: -4, type: 'square', seats: 4 },
         { x: 2, z: 6, type: 'square', seats: 4 },
     ];
 
@@ -207,46 +207,53 @@ export function createRestaurant(scn) {
         tableGroup.position.set(tp.x, 0, tp.z);
 
         if (tp.type === 'round') {
-            // Round table
-            const top = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.1, 24), materials.tableWhite);
-            top.position.y = 1.3;
-            top.castShadow = true;
-            tableGroup.add(top);
-            const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 1.25, 8), materials.chairLeg);
-            leg.position.y = 0.625;
-            tableGroup.add(leg);
-            // 2 chairs opposite
+            // Cute Tree Stump Table (Cats & Soup style)
+            const stumpTop = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.95, 0.8, 12), new THREE.MeshStandardMaterial({ color: 0x8E6A45, roughness: 0.9 }));
+            stumpTop.position.y = 0.4;
+            stumpTop.castShadow = true;
+            tableGroup.add(stumpTop);
+            
+            // Tree rings on top
+            const rings = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.82, 12), new THREE.MeshStandardMaterial({ color: 0xD3A978, roughness: 0.8 }));
+            rings.position.y = 0.4;
+            tableGroup.add(rings);
+            
+            // 2 Puff chairs opposite
             for (let i = 0; i < tp.seats; i++) {
                 const angle = (i / tp.seats) * Math.PI * 2;
-                const chair = createChair();
-                chair.position.set(Math.cos(angle) * 1.4, 0, Math.sin(angle) * 1.4);
+                const chair = createPuffChair();
+                chair.position.set(Math.cos(angle) * 1.5, 0, Math.sin(angle) * 1.5);
                 chair.rotation.y = angle + Math.PI;
                 tableGroup.add(chair);
             }
         } else {
-            // Square table
-            const top = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.1, 1.4), materials.tableWood);
-            top.position.y = 1.3;
+            // Cute Pastel Picnic/Cafe Table (Rounded)
+            // Use a cylinder for a rounded square look by passing 4 radial segments and rotating 45 deg
+            const top = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.15, 8), materials.tableWood);
+            top.position.y = 0.9;
+            top.rotation.y = Math.PI / 8; // Offset the 8-sided cylinder to look like a chamfered square
             top.castShadow = true;
             tableGroup.add(top);
-            // 4 legs
-            const legGeo = new THREE.BoxGeometry(0.08, 1.25, 0.08);
-            for (const dx of [-0.6, 0.6]) {
-                for (const dz of [-0.6, 0.6]) {
+            
+            // Cute thick legs
+            const legGeo = new THREE.CylinderGeometry(0.12, 0.08, 0.9, 8);
+            const legOffset = 0.7;
+            for (const dx of [-legOffset, legOffset]) {
+                for (const dz of [-legOffset, legOffset]) {
                     const leg = new THREE.Mesh(legGeo, materials.chairLeg);
-                    leg.position.set(dx, 0.625, dz);
+                    leg.position.set(dx, 0.45, dz);
                     tableGroup.add(leg);
                 }
             }
-            // 4 chairs on sides
+            // 4 Puff chairs on sides
             const chairOffsets = [
-                { x: 0, z: -1.3, ry: 0 },
-                { x: 0, z: 1.3, ry: Math.PI },
-                { x: -1.3, z: 0, ry: Math.PI / 2 },
-                { x: 1.3, z: 0, ry: -Math.PI / 2 },
+                { x: 0, z: -1.4, ry: 0 },
+                { x: 0, z: 1.4, ry: Math.PI },
+                { x: -1.4, z: 0, ry: Math.PI / 2 },
+                { x: 1.4, z: 0, ry: -Math.PI / 2 },
             ];
             chairOffsets.slice(0, tp.seats).forEach(co => {
-                const chair = createChair();
+                const chair = createPuffChair();
                 chair.position.set(co.x, 0, co.z);
                 chair.rotation.y = co.ry;
                 tableGroup.add(chair);
@@ -269,8 +276,9 @@ export function createRestaurant(scn) {
 
     // --- HANGING LAMPS ---
     const lampPositions = [
-        { x: -4, z: -3 }, { x: 1, z: 1 }, { x: -3, z: 4 },
-        { x: 4, z: -4 }, { x: 5, z: 3 }, { x: 0, z: -5 },
+        { x: -5, z: -4 }, { x: 0.5, z: 1.5 }, { x: -4, z: 6 },
+        { x: 6, z: -4 }, { x: 6, z: 1.5 }, { x: -5, z: 1 },
+        { x: 0, z: -4 }, { x: 2, z: 6 }
     ];
     lampPositions.forEach(lp => {
         const lamp = createHangingLamp();
@@ -555,27 +563,24 @@ export function createRestaurant(scn) {
     return { restaurant, tables: tableData, kitchen: kitchenData, bar: barData, doorPosition };
 }
 
-// ---------- HELPER: Create Chair ----------
-function createChair() {
+// ---------- HELPER: Create Puff Chair (Cats & Soup Style) ----------
+function createPuffChair() {
     const group = new THREE.Group();
-    // Seat
-    const seat = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.08, 0.55), materials.chairRed);
-    seat.position.y = 0.75;
-    seat.castShadow = true;
-    group.add(seat);
-    // Back
-    const back = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.6, 0.08), materials.chairRed);
-    back.position.set(0, 1.09, -0.24);
-    group.add(back);
-    // Legs
-    const legGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.75, 6);
-    for (const dx of [-0.2, 0.2]) {
-        for (const dz of [-0.2, 0.2]) {
-            const leg = new THREE.Mesh(legGeo, materials.chairLeg);
-            leg.position.set(dx, 0.375, dz);
-            group.add(leg);
-        }
-    }
+    // Cute round cushion puff
+    const puffGeo = new THREE.SphereGeometry(0.4, 16, 16);
+    const puffMat = new THREE.MeshStandardMaterial({ color: 0xFFB6C1, roughness: 0.9 }); // Pastel pink puff
+    const puff = new THREE.Mesh(puffGeo, puffMat);
+    puff.scale.set(1, 0.6, 1);
+    puff.position.y = 0.24;
+    puff.castShadow = true;
+    group.add(puff);
+    
+    // Wooden base
+    const baseGeo = new THREE.CylinderGeometry(0.35, 0.4, 0.1, 16);
+    const base = new THREE.Mesh(baseGeo, materials.chairLeg);
+    base.position.y = 0.05;
+    group.add(base);
+    
     return group;
 }
 

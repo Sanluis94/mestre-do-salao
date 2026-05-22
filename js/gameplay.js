@@ -699,6 +699,18 @@ export class Game {
                 updatePatienceBar(c.patienceBar, c.patience / c.maxPatience, this.camera);
             }
 
+            // Wait for order
+            if (c.state === 'waiting_order') {
+                const t = this.tables[c.tableIndex];
+                if (t) {
+                    c.model.lookAt(t.position.x, c.model.position.y, t.position.z);
+                }
+                c.actionTimer -= dt;
+                if (c.actionTimer <= 0) {
+                    c.state = 'ordering';
+                }
+            }
+
             // Eating timer
             if (c.state === 'eating') {
                 c.eatTimer -= dt;
