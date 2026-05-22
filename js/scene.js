@@ -195,10 +195,10 @@ export function createRestaurant(scn) {
         { x: 1, z: 1, type: 'square', seats: 4 },
         { x: -3, z: 4, type: 'square', seats: 4 },
         { x: 4, z: -4, type: 'round', seats: 2 },
-        { x: 5, z: 3, type: 'square', seats: 4 },
+        { x: 4, z: 3, type: 'square', seats: 4 },
         // Progression tables:
         { x: -6, z: 0, type: 'round', seats: 2 },
-        { x: -1, z: -6, type: 'square', seats: 4 },
+        { x: -1, z: -4.5, type: 'square', seats: 4 },
         { x: 2, z: 6, type: 'square', seats: 4 },
     ];
 

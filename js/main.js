@@ -3,7 +3,7 @@
 // ==========================================
 import * as THREE from 'three';
 import { initScene, createRestaurant } from './scene.js';
-import { Game } from './gameplay.js';
+import { Game, shopState, saveProgress, getShopPrices, loadProgress } from './gameplay.js';
 import {
     initUI, initParticles, animateParticles,
     showScreen, hideLevelComplete, hideGameOver,
@@ -60,6 +60,7 @@ function setupMenuListeners() {
                 // Double the money earned in this level
                 const earned = game.levelMoney;
                 game.state.money += earned; 
+                saveProgress(game.state.money);
                 game.levelMoney *= 2;
                 document.getElementById('result-money').textContent = `R$ ${game.levelMoney.toFixed(2)}`;
                 e.target.style.display = 'none'; // Hide button after using
@@ -72,22 +73,41 @@ function setupMenuListeners() {
         backToMenu();
     });
 
-    document.getElementById('btn-retry').addEventListener('click', () => {
-        hideGameOver();
-        game.restart();
-    });
-
     document.getElementById('btn-ad-revive').addEventListener('click', (e) => {
         showSimulatedAd(() => {
             if (game) {
-                hideGameOver();
-                game.state.satisfaction = 50; // Restore 50%
-                game.state.timeLeft += 30; // Extra 30 seconds
+                game.state.timeLeft += 60; 
                 game.state.running = true;
-                e.target.style.display = 'none'; // Hide button after using
+                hideGameOver();
+                document.getElementById('game-over').classList.add('hidden');
+                e.target.style.display = 'none'; // Can only revive once
             }
         });
     });
+
+    document.getElementById('btn-restart').addEventListener('click', () => {
+        hideGameOver();
+        if (game) game.restart();
+    });
+
+    // --- SHOP LOGIC ---
+    const openShop = () => {
+        const money = game ? game.state.money : loadProgress();
+        document.getElementById('shop-balance').textContent = money.toFixed(2);
+        updateShopButtons(money);
+        showScreen('shop-screen');
+    };
+    document.getElementById('btn-shop').addEventListener('click', openShop);
+    document.getElementById('btn-shop-level').addEventListener('click', openShop);
+    document.getElementById('btn-close-shop').addEventListener('click', () => {
+        if (currentScreen === 'game') {
+            document.getElementById('shop-screen').classList.add('hidden');
+        } else {
+            showScreen('menu-screen');
+        }
+    });
+
+    setupShopButtons();
 
     document.getElementById('btn-go-menu').addEventListener('click', () => {
         hideGameOver();
@@ -112,7 +132,60 @@ function setupMenuListeners() {
     });
 }
 
-// ---------- START GAME ----------
+function updateShopButtons(money) {
+    const prices = getShopPrices();
+
+    const setupBtn = (id, price, isUnlocked, callback) => {
+        const btn = document.getElementById(id);
+        if (isUnlocked) {
+            btn.textContent = 'Comprado';
+            btn.disabled = true;
+        } else {
+            btn.textContent = `R$ ${price}`;
+            btn.disabled = money < price;
+            btn.onclick = () => {
+                if (money >= price) {
+                    money -= price; // local variable
+                    if (game) {
+                        game.state.money = money;
+                    }
+                    callback();
+                    saveProgress(money);
+                    updateShopButtons(money);
+                    document.getElementById('shop-balance').textContent = money.toFixed(2);
+                }
+            };
+        }
+    };
+
+    setupBtn('btn-buy-table', prices.table, shopState.tablesUnlocked >= 8, () => {
+        shopState.tablesUnlocked++;
+        if (game) {
+            window.ACTIVE_TABLES = shopState.tablesUnlocked;
+            game.navGrid = game.buildNavGrid ? game.buildNavGrid() : game.navGrid;
+            game.tables.forEach((t, idx) => {
+                if (idx < window.ACTIVE_TABLES) {
+                    t.group.visible = true;
+                    if (t.state === 'locked') t.state = 'empty';
+                }
+            });
+        }
+    });
+    setupBtn('btn-buy-speed', prices.speed, shopState.waiterSpeedLevel >= 5, () => {
+        shopState.waiterSpeedLevel++;
+        if (game) game.waiterSpeed = 5.0 + (shopState.waiterSpeedLevel * 0.5);
+    });
+    setupBtn('btn-buy-massa', prices.food.massa, shopState.foodUnlocked.includes('massa'), () => shopState.foodUnlocked.push('massa'));
+    setupBtn('btn-buy-salada', prices.food.salada, shopState.foodUnlocked.includes('salada'), () => shopState.foodUnlocked.push('salada'));
+    setupBtn('btn-buy-file', prices.food.file, shopState.foodUnlocked.includes('file'), () => shopState.foodUnlocked.push('file'));
+    setupBtn('btn-buy-refrigerante', prices.drinks.refrigerante, shopState.drinksUnlocked.includes('refrigerante'), () => shopState.drinksUnlocked.push('refrigerante'));
+    setupBtn('btn-buy-cerveja', prices.drinks.cerveja, shopState.drinksUnlocked.includes('cerveja'), () => shopState.drinksUnlocked.push('cerveja'));
+    setupBtn('btn-buy-vinho', prices.drinks.vinho, shopState.drinksUnlocked.includes('vinho'), () => shopState.drinksUnlocked.push('vinho'));
+}
+
+function setupShopButtons() {
+    // Buttons are setup dynamically inside updateShopButtons
+}
 function startGame() {
     stopMenuLoop();
     showScreen('game-screen');

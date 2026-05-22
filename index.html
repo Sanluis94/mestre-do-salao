@@ -17,8 +17,9 @@
             <h1 class="game-title">Cat Cafe</h1>
             <p class="subtitle">SIMULADOR DE GESTÃO & ATENDIMENTO</p>
             <div class="menu-buttons">
-                <button id="btn-play" class="btn btn-primary"><span class="btn-icon">▶</span> Jogar</button>
-                <button id="btn-tutorial" class="btn btn-secondary"><span class="btn-icon">📖</span> Tutorial</button>
+                <button id="btn-play" class="btn btn-primary">Iniciar Serviço</button>
+                <button id="btn-shop" class="btn btn-secondary">🏪 Loja de Upgrades</button>
+                <button id="btn-tutorial" class="btn btn-secondary">Como Jogar</button>
                 <button id="btn-credits" class="btn btn-secondary"><span class="btn-icon">⭐</span> Créditos</button>
                 <a id="btn-donate" href="https://ko-fi.com/" target="_blank" class="btn btn-secondary" style="margin-top: 10px; border-color: #FF8FAB; color: #FF8FAB;"><span class="btn-icon">🐾</span> Apoie o Desenvolvedor</a>
             </div>
@@ -124,6 +125,11 @@
     <div id="level-complete" class="game-overlay hidden">
         <div class="overlay-panel result-panel">
             <h2>🎉 Nível Completo!</h2>
+            <div class="stars-container">
+                <span class="star" id="star-1">★</span>
+                <span class="star" id="star-2">★</span>
+                <span class="star" id="star-3">★</span>
+            </div>
             <div class="result-stats">
                 <div class="stat"><span class="stat-label">Clientes Atendidos</span><span id="result-served" class="stat-value">0</span></div>
                 <div class="stat"><span class="stat-label">Pontuação</span><span id="result-score" class="stat-value">0</span></div>
@@ -131,8 +137,9 @@
                 <div class="stat"><span class="stat-label">Satisfação Final</span><span id="result-satisfaction" class="stat-value">100%</span></div>
             </div>
             <div class="result-buttons">
-                <button id="btn-ad-double" class="btn btn-primary" style="background: linear-gradient(135deg, #FF9800, #F57C00); color: white;"><span class="btn-icon">📺</span> Ad: Dobrar Recompensa!</button>
-                <button id="btn-next-level" class="btn btn-primary" style="margin-top: 5px;">Próximo Nível ▶</button>
+                <button id="btn-ad-double" class="btn btn-ad">📹 Dobrar Moedas</button>
+                <button id="btn-shop-level" class="btn btn-secondary">🏪 Loja</button>
+                <button id="btn-next-level" class="btn btn-primary">Próximo Nível</button>
                 <button id="btn-back-menu" class="btn btn-secondary">Menu Principal</button>
             </div>
         </div>
@@ -176,6 +183,73 @@
                 <div id="ad-progress-bar" style="width: 0%; height: 100%; background: #FF9800; transition: width 1s linear;"></div>
             </div>
             <p id="ad-timer-text" style="margin-top: 15px; color: #aaa;">O anúncio termina em <span id="ad-time-left">3</span>s...</p>
+        </div>
+    </div>
+
+    <!-- Shop Screen -->
+    <div id="shop-screen" class="screen hidden">
+        <div class="overlay-panel shop-panel">
+            <h2>Loja do Cat Cafe 🏪</h2>
+            <div class="shop-money">Saldo: 🐟 <span id="shop-balance">0</span></div>
+            <div class="shop-items-container">
+                <div class="shop-item">
+                    <div class="shop-item-info">
+                        <h3>Mesa Extra</h3>
+                        <p>Atende mais gatinhos!</p>
+                    </div>
+                    <button id="btn-buy-table" class="btn btn-buy">R$ 150</button>
+                </div>
+                <div class="shop-item">
+                    <div class="shop-item-info">
+                        <h3>Patinhas Rápidas</h3>
+                        <p>Garçom anda mais rápido</p>
+                    </div>
+                    <button id="btn-buy-speed" class="btn btn-buy">R$ 200</button>
+                </div>
+                <div class="shop-item">
+                    <div class="shop-item-info">
+                        <h3>Cardápio: Massa Especial 🍝</h3>
+                        <p>Novo prato quente (+ Lucro)</p>
+                    </div>
+                    <button id="btn-buy-massa" class="btn btn-buy">R$ 120</button>
+                </div>
+                <div class="shop-item">
+                    <div class="shop-item-info">
+                        <h3>Cardápio: Salada Gourmet 🥗</h3>
+                        <p>Novo prato chique</p>
+                    </div>
+                    <button id="btn-buy-salada" class="btn btn-buy">R$ 150</button>
+                </div>
+                <div class="shop-item">
+                    <div class="shop-item-info">
+                        <h3>Cardápio: Filé Premium 🥩</h3>
+                        <p>O favorito dos felinos</p>
+                    </div>
+                    <button id="btn-buy-file" class="btn btn-buy">R$ 300</button>
+                </div>
+                <div class="shop-item">
+                    <div class="shop-item-info">
+                        <h3>Bebida: Refrigerante 🥤</h3>
+                        <p>Bebida rápida</p>
+                    </div>
+                    <button id="btn-buy-refrigerante" class="btn btn-buy">R$ 80</button>
+                </div>
+                <div class="shop-item">
+                    <div class="shop-item-info">
+                        <h3>Bebida: Cerveja Artesanal 🍺</h3>
+                        <p>Lucro extra no bar</p>
+                    </div>
+                    <button id="btn-buy-cerveja" class="btn btn-buy">R$ 150</button>
+                </div>
+                <div class="shop-item">
+                    <div class="shop-item-info">
+                        <h3>Bebida: Vinho 🍷 & Cocktail 🍹</h3>
+                        <p>Bebidas de luxo</p>
+                    </div>
+                    <button id="btn-buy-vinho" class="btn btn-buy">R$ 400</button>
+                </div>
+            </div>
+            <button id="btn-close-shop" class="btn btn-secondary">Voltar</button>
         </div>
     </div>
 

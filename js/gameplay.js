@@ -31,6 +31,41 @@ const DRINKS_MENU = [
     { id: 'agua', name: 'Água Mineral', emoji: '💧', price: 4, cookTime: 1, station: 'bar' },
 ];
 
+// ---------- SHOP & PROGRESSION STATE ----------
+export const shopState = {
+    tablesUnlocked: 3,
+    waiterSpeedLevel: 1, // 1 to 5
+    foodUnlocked: ['prato_dia', 'sobremesa'],
+    drinksUnlocked: ['agua', 'suco'],
+};
+
+export function saveProgress(money) {
+    localStorage.setItem('catCafeSave', JSON.stringify({ shopState, money }));
+}
+
+export function loadProgress() {
+    const data = localStorage.getItem('catCafeSave');
+    if (data) {
+        try {
+            const parsed = JSON.parse(data);
+            if (parsed.shopState) Object.assign(shopState, parsed.shopState);
+            return parsed.money || 0;
+        } catch (e) {
+            console.error("Save data corrupted", e);
+        }
+    }
+    return 0;
+}
+
+export function getShopPrices() {
+    return {
+        table: 150 + (shopState.tablesUnlocked - 3) * 100, // 150, 250, 350, 450, 550
+        speed: 200 * shopState.waiterSpeedLevel, // 200, 400, 600, 800
+        food: { 'massa': 120, 'salada': 150, 'file': 300 },
+        drinks: { 'refrigerante': 80, 'cerveja': 150, 'vinho': 250, 'cocktail': 400 }
+    };
+}
+
 // ---------- LEVEL CONFIG ----------
 const LEVELS = [
     { totalCustomers: 5,  timeLimit: 120, patience: 60, spawnInterval: 12 },
@@ -57,13 +92,13 @@ const TABLE_OBSTACLES = [
     { x: 1,  z: 1,  r: 1.8, apX: 1.0,  apZ: -1.5 },   // 1: square — S
     { x: -3, z: 4,  r: 1.8, apX: -0.4, apZ: 3.5 },    // 2: square — E
     { x: 4,  z: -4, r: 1.6, apX: 1.6,  apZ: -3.2 },   // 3: round — W
-    { x: 5,  z: 3,  r: 1.8, apX: 2.5,  apZ: 2.5 },    // 4: square — SW
+    { x: 4,  z: 3,  r: 1.8, apX: 2.0,  apZ: 2.5 },    // 4: square — SW
     // Progression tables:
     { x: -6, z: 0,  r: 1.6, apX: -3.5, apZ: 0.0 },    // 5: round — E
-    { x: -1, z: -6, r: 1.8, apX: -1.0, apZ: -3.5 },   // 6: square — S
+    { x: -1, z: -4.5, r: 1.8, apX: -1.0, apZ: -2.0 },   // 6: square — S
     { x: 2,  z: 6,  r: 1.8, apX: 2.0,  apZ: 3.5 },    // 7: square — N
 ];
-window.ACTIVE_TABLES = 3; // Starts with 3 tables, unlocks more each level
+window.ACTIVE_TABLES = shopState.tablesUnlocked;
 
 // Character collision radius used for runtime enforcement
 const CHARACTER_RADIUS = 0.3;
@@ -348,6 +383,8 @@ function enforceTableCollision(position) {
     }
 }
 
+
+
 // ---------- GAME CLASS ----------
 export class Game {
     constructor(scene, restaurantData, camera) {
@@ -359,7 +396,7 @@ export class Game {
         this.doorPosition = restaurantData.doorPosition;
 
         this.state = {
-            money: 0, score: 0, satisfaction: 100,
+            money: loadProgress(), score: 0, satisfaction: 100,
             timeLeft: 120, level: 1, paused: false, running: false,
         };
 
@@ -417,8 +454,11 @@ export class Game {
         this.scene.add(this.waiter);
         this.waiterState = 'idle';
 
+        // Set waiter speed based on upgrades (base 5.5 + 0.5 per level)
+        this.waiterSpeed = 5.0 + (shopState.waiterSpeedLevel * 0.5);
+
         // Rebuild navigation grid based on active tables
-        window.ACTIVE_TABLES = Math.min(2 + level, this.tables.length); // L1: 3 tables, L2: 4 tables, etc.
+        window.ACTIVE_TABLES = shopState.tablesUnlocked;
         this.navGrid = buildNavGrid();
 
         // Reset and hide/show tables based on progression
@@ -767,6 +807,8 @@ export class Game {
             const totalEarned = earned + tipAmount + comboBonus;
 
             this.state.money += totalEarned;
+            saveProgress(this.state.money);
+            
             this.state.score += totalEarned + patienceBonus;
             this.levelMoney += totalEarned;
             this.state.satisfaction = Math.min(100, this.state.satisfaction + 3 + (comboMultiplier > 1 ? 2 : 0));
@@ -1029,9 +1071,13 @@ export class Game {
         const customer = table.customerRef;
         if (!customer || customer.state !== 'seated') return;
 
-        // Each customer orders one food item AND one drink
-        const foodItem = FOOD_MENU[Math.floor(Math.random() * FOOD_MENU.length)];
-        const drinkItem = DRINKS_MENU[Math.floor(Math.random() * DRINKS_MENU.length)];
+        // Filter menus by unlocked items
+        const availableFood = FOOD_MENU.filter(item => shopState.foodUnlocked.includes(item.id));
+        const availableDrinks = DRINKS_MENU.filter(item => shopState.drinksUnlocked.includes(item.id));
+
+        // Random pick from available
+        const foodItem = availableFood[Math.floor(Math.random() * availableFood.length)];
+        const drinkItem = availableDrinks[Math.floor(Math.random() * availableDrinks.length)];
 
         const foodOrder = {
             id: this.orderIdCounter++,
