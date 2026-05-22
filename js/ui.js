@@ -257,37 +257,51 @@ export function showScreen(screenId) {
 
 // ---------- OVERLAYS ----------
 export function showLevelComplete(stats) {
-    document.getElementById('result-served').textContent = stats.served;
-    document.getElementById('result-score').textContent = stats.score;
-    document.getElementById('result-money').textContent = `R$ ${stats.money}`;
-    document.getElementById('result-satisfaction').textContent = `${Math.round(stats.satisfaction)}%`;
+    const elServed = document.getElementById('result-served');
+    if (elServed) elServed.textContent = stats.served;
+    const elScore = document.getElementById('result-score');
+    if (elScore) elScore.textContent = stats.score;
+    const elMoney = document.getElementById('result-money');
+    if (elMoney) elMoney.textContent = `R$ ${stats.money}`;
+    const elSat = document.getElementById('result-satisfaction');
+    if (elSat) elSat.textContent = `${Math.round(stats.satisfaction)}%`;
     
     // Reset ad button visibility
     const adBtn = document.getElementById('btn-ad-double');
     if (adBtn) adBtn.style.display = 'block';
 
-    dom.levelComplete.classList.remove('hidden');
+    if (dom.levelComplete) dom.levelComplete.classList.remove('hidden');
     playSound('levelup');
 }
-export function hideLevelComplete() { dom.levelComplete.classList.add('hidden'); }
+export function hideLevelComplete() { 
+    if (dom.levelComplete) dom.levelComplete.classList.add('hidden'); 
+}
 
 export function showGameOver(stats) {
-    document.getElementById('go-level').textContent = stats.level;
-    document.getElementById('go-score').textContent = stats.score;
-    document.getElementById('go-money').textContent = `R$ ${stats.money}`;
+    const elLvl = document.getElementById('go-level');
+    if (elLvl) elLvl.textContent = stats.level;
+    const elScore = document.getElementById('go-score');
+    if (elScore) elScore.textContent = stats.score;
+    const elMoney = document.getElementById('go-money');
+    if (elMoney) elMoney.textContent = `R$ ${stats.money}`;
 
     // Reset ad button visibility
     const adBtn = document.getElementById('btn-ad-revive');
     if (adBtn) adBtn.style.display = 'block';
 
-    dom.gameOver.classList.remove('hidden');
+    if (dom.gameOver) dom.gameOver.classList.remove('hidden');
     playSound('gameover');
 }
-export function hideGameOver() { dom.gameOver.classList.add('hidden'); }
+export function hideGameOver() { 
+    if (dom.gameOver) dom.gameOver.classList.add('hidden'); 
+}
 
-export function showPause() { dom.pauseOverlay.classList.remove('hidden'); }
+export function showPause() { 
+    if (dom.pauseOverlay) dom.pauseOverlay.classList.remove('hidden'); 
+}
 export function hidePause() {
-    document.getElementById('pause-overlay').classList.add('hidden');
+    const elPause = document.getElementById('pause-overlay');
+    if (elPause) elPause.classList.add('hidden');
 }
 
 // ---------- AD SIMULATION ----------
