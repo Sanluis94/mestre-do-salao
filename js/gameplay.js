@@ -1115,7 +1115,7 @@ export class Game {
         order.state = 'carrying';
 
         // Visual: plate on waiter
-        const plate = createPlateModel();
+        const plate = createPlateModel(order.menuItem.id);
         plate.position.set(0, 0.3, 0.3);
         this.waiter.add(plate);
         this.waiterCarrying = plate;
@@ -1134,7 +1134,7 @@ export class Game {
         order.state = 'carrying';
 
         // Visual: drink glass on waiter
-        const glass = createDrinkModel();
+        const glass = createDrinkModel(order.menuItem.id);
         glass.position.set(0, 0.3, 0.3);
         this.waiter.add(glass);
         this.waiterCarrying = glass;
@@ -1164,13 +1164,13 @@ export class Game {
 
         // Add visual to table
         if (isDrink) {
-            const drinkGlass = createDrinkModel();
+            const drinkGlass = createDrinkModel(order.menuItem.id);
             drinkGlass.position.copy(table.position);
             drinkGlass.position.x += 0.35;
             this.scene.add(drinkGlass);
             table.drinkGlass = drinkGlass;
         } else {
-            const foodPlate = createPlateModel();
+            const foodPlate = createPlateModel(order.menuItem.id);
             foodPlate.position.copy(table.position);
             this.scene.add(foodPlate);
             table.foodPlate = foodPlate;

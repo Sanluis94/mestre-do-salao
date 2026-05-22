@@ -814,18 +814,52 @@ export function createCustomerModel(colorIndex) {
 }
 
 // ---------- FOOD PLATE MODEL ----------
-export function createPlateModel() {
+export function createPlateModel(itemId = 'prato_dia') {
     const group = new THREE.Group();
     // Plate
     const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.22, 0.05, 16),
         new THREE.MeshStandardMaterial({ color: 0xF5F5F5, roughness: 0.3 }));
     plate.position.y = 1.38;
     group.add(plate);
+
     // Food
-    const food = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8),
-        new THREE.MeshStandardMaterial({ color: 0xCC6633, roughness: 0.8 }));
-    food.position.y = 1.45;
-    food.scale.y = 0.5;
+    let food;
+    if (itemId === 'prato_dia') {
+        // Ração Premium - Brown kibble pile
+        food = new THREE.Mesh(new THREE.DodecahedronGeometry(0.12, 1),
+            new THREE.MeshStandardMaterial({ color: 0x8B5A2B, roughness: 0.9 }));
+        food.position.y = 1.45;
+        food.scale.set(1, 0.6, 1);
+    } else if (itemId === 'massa') {
+        // Lasanha de Atum - Orange layers
+        food = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.15, 0.25),
+            new THREE.MeshStandardMaterial({ color: 0xE8833A, roughness: 0.8 }));
+        food.position.y = 1.47;
+    } else if (itemId === 'file') {
+        // Sashimi - Pink oval slice
+        food = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.05, 12),
+            new THREE.MeshStandardMaterial({ color: 0xFF9E9E, roughness: 0.4 }));
+        food.scale.set(1, 1, 0.5);
+        food.position.y = 1.43;
+    } else if (itemId === 'sobremesa') {
+        // Sachê de Carne - Dark meat mound
+        food = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8),
+            new THREE.MeshStandardMaterial({ color: 0x5C4033, roughness: 0.9 }));
+        food.position.y = 1.46;
+        food.scale.y = 0.5;
+    } else if (itemId === 'salada') {
+        // Grama de Gato - Green blades
+        food = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.2, 8),
+            new THREE.MeshStandardMaterial({ color: 0x8ED9A6, roughness: 0.8 }));
+        food.position.y = 1.48;
+    } else {
+        // Fallback generic food
+        food = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8),
+            new THREE.MeshStandardMaterial({ color: 0xCC6633, roughness: 0.8 }));
+        food.position.y = 1.45;
+        food.scale.y = 0.5;
+    }
+    
     group.add(food);
     return group;
 }
@@ -969,24 +1003,34 @@ export function updateBarReady(barData, hasReadyDrinks) {
     }
 }
 
-// ---------- DRINK GLASS MODEL ----------
-export function createDrinkModel() {
+// ---------- DRINK MODEL ----------
+export function createDrinkModel(itemId = 'agua') {
     const group = new THREE.Group();
-    // Glass body
-    const glass = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.09, 0.28, 12),
-        materials.glassBody);
-    glass.position.y = 1.42;
+    
+    let color = 0xCCDDEE;
+    let opacity = 0.8;
+    
+    if (itemId === 'suco') { color = 0xFFFAF0; opacity = 1.0; } // Leite Fresco
+    else if (itemId === 'refrigerante') { color = 0xDEB887; opacity = 0.9; } // Caldo
+    else if (itemId === 'cerveja') { color = 0x98FB98; opacity = 0.85; } // Catnip Frio
+    else if (itemId === 'vinho') { color = 0xAEECEF; opacity = 0.6; } // Água da Fonte
+    else if (itemId === 'cocktail') { color = 0xFFDAB9; opacity = 0.9; } // Vitamina
+    else if (itemId === 'agua') { color = 0xCCDDEE; opacity = 0.6; } // Água Pura
+
+    const glassMat = new THREE.MeshStandardMaterial({ 
+        color: 0xEEEEFF, roughness: 0.1, transparent: true, opacity: 0.4 
+    });
+    const liquidMat = new THREE.MeshStandardMaterial({ 
+        color: color, roughness: 0.3, transparent: true, opacity: opacity 
+    });
+
+    const glass = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.08, 0.3, 12), glassMat);
+    glass.position.y = 1.55;
     group.add(glass);
-    // Liquid inside
-    const liquid = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.08, 0.20, 12),
-        materials.drinkLiquid);
-    liquid.position.y = 1.38;
+
+    const liquid = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.07, 0.22, 12), liquidMat);
+    liquid.position.y = 1.53;
     group.add(liquid);
-    // Straw
-    const straw = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.35, 6),
-        new THREE.MeshStandardMaterial({ color: 0xEE3333, roughness: 0.5 }));
-    straw.position.set(0.04, 1.52, 0.02);
-    straw.rotation.z = 0.15;
-    group.add(straw);
+
     return group;
 }

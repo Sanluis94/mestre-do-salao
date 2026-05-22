@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
     <!-- ========== MENU SCREEN ========== -->
@@ -255,14 +255,19 @@
         </div>
     </div>
 
+    <!-- Scripts -->
+    <!-- Use importmap to support Three.js ES module bare imports from CDN -->
     <script type="importmap">
     {
         "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
         }
     }
     </script>
-    <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/ui.js?v=3"></script>
+    <script type="module" src="js/scene.js?v=3"></script>
+    <script type="module" src="js/gameplay.js?v=3"></script>
+    <script type="module" src="js/main.js?v=3"></script>
 </body>
 </html>
