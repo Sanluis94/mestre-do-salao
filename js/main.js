@@ -2,13 +2,13 @@
 // main.js — Entry Point, Game Loop, Events
 // ==========================================
 import * as THREE from 'three';
-import { initScene, createRestaurant } from './scene.js?v=8';
-import { Game, shopState, saveProgress, getShopPrices, loadProgress } from './gameplay.js?v=8';
+import { initScene, createRestaurant } from './scene.js?v=9';
+import { Game, shopState, saveProgress, getShopPrices, loadProgress } from './gameplay.js?v=9';
 import {
     initUI, initParticles, animateParticles,
     showScreen, hideLevelComplete, hideGameOver,
     showPause, hidePause, showMessage, showSimulatedAd
-} from './ui.js?v=8';
+} from './ui.js?v=9';
 
 // ---------- STATE ----------
 let sceneData = null;
@@ -63,7 +63,7 @@ function setupMenuListeners() {
                 saveProgress(game.state.money);
                 game.levelMoney *= 2;
                 document.getElementById('result-money').textContent = `R$ ${game.levelMoney.toFixed(2)}`;
-                e.target.style.display = 'none'; // Hide button after using
+                document.getElementById('btn-ad-double').style.display = 'none'; // Hide button after using
             }
         });
     });
@@ -76,11 +76,12 @@ function setupMenuListeners() {
     document.getElementById('btn-ad-revive').addEventListener('click', (e) => {
         showSimulatedAd(() => {
             if (game) {
-                game.state.timeLeft += 60; 
+                game.state.timeLeft += 30; // Matches button text (+30s)
+                game.state.satisfaction = 100; // Restore satisfaction so game doesn't immediately end
                 game.state.running = true;
                 hideGameOver();
                 document.getElementById('game-over').classList.add('hidden');
-                e.target.style.display = 'none'; // Can only revive once
+                document.getElementById('btn-ad-revive').style.display = 'none'; // Can only revive once
             }
         });
     });
