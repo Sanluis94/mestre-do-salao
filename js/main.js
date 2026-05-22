@@ -85,7 +85,7 @@ function setupMenuListeners() {
         });
     });
 
-    document.getElementById('btn-restart').addEventListener('click', () => {
+    document.getElementById('btn-retry').addEventListener('click', () => {
         hideGameOver();
         if (game) game.restart();
     });
