@@ -4,26 +4,26 @@
 
 /* --- CSS Variables --- */
 :root {
-    --bg-dark: #0a0a2e;
-    --bg-darker: #050518;
-    --gold: #DAA520;
-    --gold-light: #F5D77A;
-    --gold-dark: #B8860B;
-    --text-primary: #F0E6D3;
-    --text-secondary: #8A8A9A;
-    --text-muted: #5A5A6A;
-    --panel-bg: rgba(10, 10, 30, 0.85);
-    --panel-border: rgba(218, 165, 32, 0.2);
-    --hud-bg: rgba(15, 15, 40, 0.9);
-    --green: #4CAF50;
-    --red: #E53935;
+    --bg-dark: #1A0A1E;
+    --bg-darker: #0F0515;
+    --gold: #FF8FAB;
+    --gold-light: #FFB6C1;
+    --gold-dark: #E8677A;
+    --text-primary: #FFF0F3;
+    --text-secondary: #B8A0AA;
+    --text-muted: #7A6A72;
+    --panel-bg: rgba(20, 8, 25, 0.88);
+    --panel-border: rgba(255, 143, 171, 0.2);
+    --hud-bg: rgba(20, 8, 25, 0.92);
+    --green: #66BB6A;
+    --red: #EF5350;
     --font-display: 'Playfair Display', Georgia, serif;
     --font-body: 'Inter', -apple-system, sans-serif;
 }
 
 /* --- Reset --- */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { width: 100%; height: 100%; overflow: hidden; font-family: var(--font-body); color: var(--text-primary); background: var(--bg-darker); }
+html, body { width: 100%; height: 100%; overflow: hidden; font-family: var(--font-body); color: var(--text-primary); background: var(--bg-darker); touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 
 /* --- Screens --- */
 .screen {
@@ -44,7 +44,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: var(--fon
    MENU SCREEN
    ========================================== */
 #menu-screen {
-    background: radial-gradient(ellipse at center, #0f1040 0%, #050518 70%);
+    background: radial-gradient(ellipse at center, #2A1030 0%, #0F0515 70%);
 }
 .menu-content {
     position: relative; z-index: 1;
@@ -131,7 +131,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: var(--fon
    OVERLAY PANELS (Tutorial, Credits)
    ========================================== */
 #tutorial-screen, #credits-screen {
-    background: radial-gradient(ellipse at center, #0f1040 0%, #050518 70%);
+    background: radial-gradient(ellipse at center, #2A1030 0%, #0F0515 70%);
 }
 .overlay-panel {
     background: var(--panel-bg);
@@ -195,6 +195,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: var(--fon
     position: absolute; inset: 0;
     width: 100%; height: 100%;
     z-index: 0;
+    touch-action: none;
 }
 
 /* --- HUD Top Bar --- */

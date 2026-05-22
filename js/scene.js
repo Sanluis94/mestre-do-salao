@@ -9,8 +9,8 @@ let scene, camera, renderer, controls;
 // ---------- SCENE INITIALIZATION ----------
 export function initScene(canvas) {
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0a2e);
-    scene.fog = new THREE.Fog(0x0a0a2e, 50, 80);
+    scene.background = new THREE.Color(0x1A0A1E);
+    scene.fog = new THREE.Fog(0x1A0A1E, 50, 80);
 
     camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 200);
     camera.position.set(22, 22, 22);
@@ -63,34 +63,42 @@ export function initScene(canvas) {
 
 // ---------- MATERIALS ----------
 const materials = {
-    floor1: new THREE.MeshStandardMaterial({ color: 0x8B6914, roughness: 0.8 }),
-    floor2: new THREE.MeshStandardMaterial({ color: 0x6B4F12, roughness: 0.8 }),
-    wall: new THREE.MeshStandardMaterial({ color: 0xC4A882, roughness: 0.7 }),
-    wallTrim: new THREE.MeshStandardMaterial({ color: 0x8B7355, roughness: 0.6 }),
+    // Cat Cafe warm pastel palette
+    floor1: new THREE.MeshStandardMaterial({ color: 0xF5E6D3, roughness: 0.8 }),
+    floor2: new THREE.MeshStandardMaterial({ color: 0xE8D5C0, roughness: 0.8 }),
+    wall: new THREE.MeshStandardMaterial({ color: 0xFFF0E0, roughness: 0.7 }),
+    wallTrim: new THREE.MeshStandardMaterial({ color: 0xD4A574, roughness: 0.6 }),
     ceiling: new THREE.MeshStandardMaterial({ color: 0x3a3a5c, roughness: 0.9 }),
-    tableWood: new THREE.MeshStandardMaterial({ color: 0x6B3A2A, roughness: 0.5 }),
-    tableWhite: new THREE.MeshStandardMaterial({ color: 0xE8E0D0, roughness: 0.4 }),
-    chairRed: new THREE.MeshStandardMaterial({ color: 0xCC2222, roughness: 0.6 }),
-    chairLeg: new THREE.MeshStandardMaterial({ color: 0x2A2A2A, roughness: 0.4, metalness: 0.3 }),
+    tableWood: new THREE.MeshStandardMaterial({ color: 0x8B5E3C, roughness: 0.5 }),
+    tableWhite: new THREE.MeshStandardMaterial({ color: 0xFFF8F0, roughness: 0.4 }),
+    chairRed: new THREE.MeshStandardMaterial({ color: 0xFF8FAB, roughness: 0.6 }),  // Pastel pink chairs
+    chairLeg: new THREE.MeshStandardMaterial({ color: 0xD4A574, roughness: 0.4, metalness: 0.2 }),
     lampShade: new THREE.MeshStandardMaterial({ color: 0xFFD700, roughness: 0.3, emissive: 0xFFAA00, emissiveIntensity: 0.5 }),
     lampWire: new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.5, metalness: 0.5 }),
-    counter: new THREE.MeshStandardMaterial({ color: 0xEEEEEE, roughness: 0.3 }),
-    counterTop: new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.2, metalness: 0.4 }),
-    doorFrame: new THREE.MeshStandardMaterial({ color: 0x6B3A20, roughness: 0.5 }),
+    counter: new THREE.MeshStandardMaterial({ color: 0xFFF5EE, roughness: 0.3 }),
+    counterTop: new THREE.MeshStandardMaterial({ color: 0x8B6F5E, roughness: 0.2, metalness: 0.3 }),
+    doorFrame: new THREE.MeshStandardMaterial({ color: 0xA0724A, roughness: 0.5 }),
     painting: new THREE.MeshStandardMaterial({ color: 0x2A4A3A, roughness: 0.5 }),
-    paintingFrame: new THREE.MeshStandardMaterial({ color: 0x8B7355, roughness: 0.4, metalness: 0.2 }),
-    doorIndicator: new THREE.MeshStandardMaterial({ color: 0x44FF44, emissive: 0x22CC22, emissiveIntensity: 0.8, roughness: 0.3 }),
-    // Bar materials
-    barWood: new THREE.MeshStandardMaterial({ color: 0x3B1E0E, roughness: 0.5 }),
-    barTop: new THREE.MeshStandardMaterial({ color: 0x1A1A2E, roughness: 0.15, metalness: 0.5 }),
-    barShelf: new THREE.MeshStandardMaterial({ color: 0x4A2A1A, roughness: 0.4, metalness: 0.1 }),
-    barMetal: new THREE.MeshStandardMaterial({ color: 0xAAAAAA, roughness: 0.2, metalness: 0.8 }),
-    barNeon: new THREE.MeshStandardMaterial({ color: 0x00CCFF, emissive: 0x0088CC, emissiveIntensity: 0.9, roughness: 0.3 }),
+    paintingFrame: new THREE.MeshStandardMaterial({ color: 0xD4A574, roughness: 0.4, metalness: 0.2 }),
+    doorIndicator: new THREE.MeshStandardMaterial({ color: 0x88FF88, emissive: 0x44DD44, emissiveIntensity: 0.8, roughness: 0.3 }),
+    // Bar materials (milk bar / treat counter)
+    barWood: new THREE.MeshStandardMaterial({ color: 0x6B4226, roughness: 0.5 }),
+    barTop: new THREE.MeshStandardMaterial({ color: 0xFFF5EE, roughness: 0.15, metalness: 0.2 }),
+    barShelf: new THREE.MeshStandardMaterial({ color: 0x8B6F5E, roughness: 0.4, metalness: 0.1 }),
+    barMetal: new THREE.MeshStandardMaterial({ color: 0xCCBBAA, roughness: 0.2, metalness: 0.6 }),
+    barNeon: new THREE.MeshStandardMaterial({ color: 0xFF88CC, emissive: 0xFF55AA, emissiveIntensity: 0.9, roughness: 0.3 }),  // Pink neon
     bottleGreen: new THREE.MeshStandardMaterial({ color: 0x1A5A2A, roughness: 0.3, metalness: 0.2, transparent: true, opacity: 0.85 }),
     bottleAmber: new THREE.MeshStandardMaterial({ color: 0x8B5E3C, roughness: 0.3, metalness: 0.2, transparent: true, opacity: 0.85 }),
     bottleClear: new THREE.MeshStandardMaterial({ color: 0xCCDDEE, roughness: 0.2, metalness: 0.3, transparent: true, opacity: 0.6 }),
     glassBody: new THREE.MeshStandardMaterial({ color: 0xDDEEFF, roughness: 0.1, metalness: 0.3, transparent: true, opacity: 0.5 }),
-    drinkLiquid: new THREE.MeshStandardMaterial({ color: 0xFFAA22, roughness: 0.4, transparent: true, opacity: 0.7 }),
+    drinkLiquid: new THREE.MeshStandardMaterial({ color: 0xFFFFEE, roughness: 0.4, transparent: true, opacity: 0.85 }),  // Milk-like
+    // Cat fur materials
+    catBlack: new THREE.MeshStandardMaterial({ color: 0x1A1A1A, roughness: 0.9 }),
+    catWhite: new THREE.MeshStandardMaterial({ color: 0xFFF8F0, roughness: 0.85 }),
+    catOrange: new THREE.MeshStandardMaterial({ color: 0xE8833A, roughness: 0.9 }),
+    catGray: new THREE.MeshStandardMaterial({ color: 0x888899, roughness: 0.9 }),
+    catPink: new THREE.MeshStandardMaterial({ color: 0xFFB6C1, roughness: 0.7 }),  // Nose/inner ear
+    catBowTie: new THREE.MeshStandardMaterial({ color: 0xFF3355, roughness: 0.5 }),
 };
 
 // ---------- BUILD RESTAURANT ----------
@@ -508,16 +516,35 @@ export function createRestaurant(scn) {
         readyOrders: [],
     };
 
-    // --- WALL PAINTINGS ---
+    // --- WALL PAINTINGS (Cat themed) ---
     const paintings = [
-        { x: -2, y: 3.5, z: -halfRoom + 0.14, ry: 0, w: 2, h: 1.5, color: 0x5A4A2A },
-        { x: -6, y: 4, z: -halfRoom + 0.14, ry: 0, w: 1.2, h: 1.2, color: 0x3A5A3A },
+        { x: -2, y: 3.5, z: -halfRoom + 0.14, ry: 0, w: 2, h: 1.5, color: 0xFFB347 },  // Orange cat portrait
+        { x: -6, y: 4, z: -halfRoom + 0.14, ry: 0, w: 1.2, h: 1.2, color: 0x87CEEB },  // Blue fish painting
     ];
     paintings.forEach(p => {
         const frame = createPainting(p.w, p.h, p.color);
         frame.position.set(p.x, p.y, p.z);
         frame.rotation.y = p.ry;
         restaurant.add(frame);
+    });
+
+    // --- PAW PRINT DECORATIONS (floor accents) ---
+    const pawPrintMat = new THREE.MeshStandardMaterial({ color: 0xD4A574, roughness: 0.9, transparent: true, opacity: 0.3 });
+    const pawPositions = [{x: -2, z: 0}, {x: 3, z: -2}, {x: 0, z: 5}, {x: -5, z: -5}];
+    pawPositions.forEach(pp => {
+        // Main pad
+        const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.02, 12), pawPrintMat);
+        pad.position.set(pp.x, 0.01, pp.z);
+        pad.receiveShadow = true;
+        restaurant.add(pad);
+        // Toe beans (4 small circles)
+        for (let i = 0; i < 4; i++) {
+            const angle = (i / 4) * Math.PI + Math.PI * 0.25;
+            const toe = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.02, 8), pawPrintMat);
+            toe.position.set(pp.x + Math.cos(angle) * 0.3, 0.01, pp.z + Math.sin(angle) * 0.3);
+            toe.receiveShadow = true;
+            restaurant.add(toe);
+        }
     });
 
     // Door position (where customers appear)
@@ -597,59 +624,192 @@ function createPainting(w, h, color) {
     return group;
 }
 
-// ---------- CHARACTER MODELS ----------
+// ---------- CAT CHARACTER MODELS ----------
+
+// Helper: build cat ears on a group at a given head Y position
+function addCatEars(group, headY, furMat, innerMat) {
+    const earGeo = new THREE.ConeGeometry(0.1, 0.22, 4);
+    for (const side of [-1, 1]) {
+        const ear = new THREE.Mesh(earGeo, furMat);
+        ear.position.set(side * 0.14, headY + 0.24, 0);
+        ear.rotation.z = side * -0.15;
+        ear.castShadow = true;
+        group.add(ear);
+        // Inner ear (pink)
+        const innerEar = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.14, 4), innerMat);
+        innerEar.position.set(side * 0.14, headY + 0.24, 0.02);
+        innerEar.rotation.z = side * -0.15;
+        group.add(innerEar);
+    }
+}
+
+// Helper: build cat tail
+function addCatTail(group, bodyY, furMat) {
+    // Tail base
+    const tail1 = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 0.5, 6), furMat);
+    tail1.position.set(0, bodyY + 0.1, -0.3);
+    tail1.rotation.x = -0.6;
+    tail1.castShadow = true;
+    group.add(tail1);
+    // Tail tip (curves up)
+    const tail2 = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.04, 0.35, 6), furMat);
+    tail2.position.set(0, bodyY + 0.42, -0.48);
+    tail2.rotation.x = -1.2;
+    group.add(tail2);
+}
+
+// Helper: build cat snout + whiskers
+function addCatFace(group, headY, noseMat) {
+    // Snout (small rounded bump)
+    const snout = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), new THREE.MeshStandardMaterial({ color: 0xFFF0E8, roughness: 0.8 }));
+    snout.position.set(0, headY - 0.04, 0.2);
+    snout.scale.set(1, 0.7, 0.6);
+    group.add(snout);
+    // Nose (tiny pink triangle)
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.03, 3), noseMat);
+    nose.position.set(0, headY - 0.01, 0.24);
+    nose.rotation.x = Math.PI;
+    group.add(nose);
+    // Whiskers (thin cylinders)
+    const whiskerMat = new THREE.MeshStandardMaterial({ color: 0xCCCCCC, roughness: 0.5 });
+    const whiskerGeo = new THREE.CylinderGeometry(0.004, 0.004, 0.25, 4);
+    for (const side of [-1, 1]) {
+        for (const wy of [-0.02, 0.02]) {
+            const whisker = new THREE.Mesh(whiskerGeo, whiskerMat);
+            whisker.position.set(side * 0.15, headY - 0.04 + wy, 0.2);
+            whisker.rotation.z = side * 0.15 + wy * 2;
+            whisker.rotation.y = side * 0.3;
+            group.add(whisker);
+        }
+    }
+    // Eyes (shiny dark spheres)
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.2, metalness: 0.5 });
+    const eyeHighlight = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, emissive: 0xFFFFFF, emissiveIntensity: 0.5 });
+    for (const side of [-1, 1]) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 8), eyeMat);
+        eye.position.set(side * 0.09, headY + 0.04, 0.17);
+        group.add(eye);
+        // Eye highlight
+        const highlight = new THREE.Mesh(new THREE.SphereGeometry(0.015, 6, 6), eyeHighlight);
+        highlight.position.set(side * 0.08, headY + 0.055, 0.21);
+        group.add(highlight);
+    }
+}
+
 export function createWaiterModel() {
     const group = new THREE.Group();
     group.userData = { type: 'waiter' };
-    // Body (black uniform)
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.25, 1.0, 8),
-        new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.6 }));
+
+    // Body (tuxedo cat — black body)
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.22, 1.0, 10),
+        materials.catBlack);
     body.position.y = 0.8;
     body.castShadow = true;
     group.add(body);
-    // Apron (white)
-    const apron = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.5, 0.05),
-        new THREE.MeshStandardMaterial({ color: 0xEEEEEE, roughness: 0.5 }));
-    apron.position.set(0, 0.65, 0.2);
+
+    // White chest/belly patch
+    const belly = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.14, 0.6, 8),
+        materials.catWhite);
+    belly.position.set(0, 0.75, 0.1);
+    group.add(belly);
+
+    // Apron (tiny waiter apron)
+    const apron = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.35, 0.04),
+        new THREE.MeshStandardMaterial({ color: 0xFFF8F0, roughness: 0.5 }));
+    apron.position.set(0, 0.55, 0.22);
     group.add(apron);
-    // Head
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 12),
-        new THREE.MeshStandardMaterial({ color: 0xFFDBAC, roughness: 0.7 }));
+
+    // Bow tie (red)
+    const bowCenter = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), materials.catBowTie);
+    bowCenter.position.set(0, 1.18, 0.2);
+    group.add(bowCenter);
+    for (const side of [-1, 1]) {
+        const wing = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.1, 4), materials.catBowTie);
+        wing.position.set(side * 0.07, 1.18, 0.2);
+        wing.rotation.z = side * Math.PI / 2;
+        group.add(wing);
+    }
+
+    // Head (round cat head)
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 14),
+        materials.catBlack);
     head.position.y = 1.52;
     head.castShadow = true;
     group.add(head);
-    // Hair
-    const hair = new THREE.Mesh(new THREE.SphereGeometry(0.23, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2),
-        new THREE.MeshStandardMaterial({ color: 0x2A1A0A }));
-    hair.position.y = 1.55;
-    group.add(hair);
+
+    // White face mask (tuxedo marking)
+    const faceMask = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12),
+        materials.catWhite);
+    faceMask.position.set(0, 1.48, 0.1);
+    faceMask.scale.set(1, 0.9, 0.6);
+    group.add(faceMask);
+
+    // Ears, face, tail
+    addCatEars(group, 1.52, materials.catBlack, materials.catPink);
+    addCatFace(group, 1.52, materials.catPink);
+    addCatTail(group, 0.8, materials.catBlack);
+
+    // Paws (front feet visible)
+    const pawMat = materials.catWhite;
+    for (const side of [-1, 1]) {
+        const paw = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), pawMat);
+        paw.position.set(side * 0.18, 0.32, 0.1);
+        group.add(paw);
+    }
+
     return group;
 }
 
 export function createCustomerModel(colorIndex) {
-    const colors = [0xCC3333, 0x3333CC, 0x33AA33, 0xCC8833, 0x8833CC, 0x33AAAA];
-    const shirtColor = colors[colorIndex % colors.length];
+    // Cat fur color palettes: body color, accent/belly, ear inner
+    const catPalettes = [
+        { fur: 0xE8833A, belly: 0xFFF0DD, name: 'orange tabby' },    // Orange
+        { fur: 0x888899, belly: 0xDDDDEE, name: 'russian blue' },     // Gray
+        { fur: 0xFFF5EE, belly: 0xFFFFFF, name: 'white persian' },    // White
+        { fur: 0x2A1A0A, belly: 0xD4A574, name: 'brown tabby' },      // Dark brown
+        { fur: 0xE8C88A, belly: 0xFFF8F0, name: 'cream' },            // Cream/Siamese
+        { fur: 0x555555, belly: 0xCCCCCC, name: 'charcoal' },         // Charcoal
+        { fur: 0xCC6633, belly: 0xFFDDBB, name: 'ginger' },            // Ginger
+        { fur: 0x1A1A2E, belly: 0xFFF0E0, name: 'tuxedo' },           // Tuxedo
+    ];
+    const palette = catPalettes[colorIndex % catPalettes.length];
+    const furMat = new THREE.MeshStandardMaterial({ color: palette.fur, roughness: 0.9 });
+    const bellyMat = new THREE.MeshStandardMaterial({ color: palette.belly, roughness: 0.85 });
+
     const group = new THREE.Group();
     group.userData = { type: 'customer' };
+
     // Body
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.22, 0.9, 8),
-        new THREE.MeshStandardMaterial({ color: shirtColor, roughness: 0.6 }));
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.2, 0.9, 10), furMat);
     body.position.y = 0.75;
     body.castShadow = true;
     group.add(body);
+
+    // Belly patch
+    const belly = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.55, 8), bellyMat);
+    belly.position.set(0, 0.72, 0.08);
+    group.add(belly);
+
     // Head
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 12),
-        new THREE.MeshStandardMaterial({ color: 0xFFDBAC, roughness: 0.7 }));
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 14, 14), furMat);
     head.position.y = 1.42;
     head.castShadow = true;
     group.add(head);
-    // Hair
-    const hairMat = new THREE.MeshStandardMaterial({
-        color: [0x2A1A0A, 0x8B4513, 0x1A1A1A, 0xDAA520][colorIndex % 4]
-    });
-    const hair = new THREE.Mesh(new THREE.SphereGeometry(0.21, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), hairMat);
-    hair.position.y = 1.45;
-    group.add(hair);
+
+    // Ears, face, tail
+    addCatEars(group, 1.42, furMat, materials.catPink);
+    addCatFace(group, 1.42, materials.catPink);
+    addCatTail(group, 0.75, furMat);
+
+    // Paws
+    const pawColor = (colorIndex % 3 === 0) ? palette.belly : palette.fur;
+    const pawMat = new THREE.MeshStandardMaterial({ color: pawColor, roughness: 0.85 });
+    for (const side of [-1, 1]) {
+        const paw = new THREE.Mesh(new THREE.SphereGeometry(0.065, 6, 6), pawMat);
+        paw.position.set(side * 0.16, 0.32, 0.08);
+        group.add(paw);
+    }
+
     return group;
 }
 
@@ -760,10 +920,10 @@ export function updatePatienceBar(bar, ratio, camera) {
     }
 
     // Update emoji based on patience
-    let emoji = '😊';
-    if (clampedRatio < 0.2) emoji = '😡';
-    else if (clampedRatio < 0.4) emoji = '😠';
-    else if (clampedRatio < 0.65) emoji = '😐';
+    let emoji = '😸';
+    if (clampedRatio < 0.2) emoji = '🙀';
+    else if (clampedRatio < 0.4) emoji = '😾';
+    else if (clampedRatio < 0.65) emoji = '🐱';
 
     const ctx = data.emojiCtx;
     ctx.clearRect(0, 0, 64, 64);

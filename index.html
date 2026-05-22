@@ -2,9 +2,9 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mestre do Salão - Simulador de Gestão e Atendimento</title>
-    <meta name="description" content="Simulador 3D de gestão e atendimento em restaurantes. Treine habilidades de garçom de forma gamificada.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cat Cafe — Simulador de Gestão e Atendimento</title>
+    <meta name="description" content="Simulador 3D de gestão em cat cafe. Gerencie seu restaurante de gatos de forma divertida e gamificada!">
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -13,14 +13,14 @@
     <div id="menu-screen" class="screen active">
         <canvas id="particles-canvas"></canvas>
         <div class="menu-content">
-            <div class="logo-icon">🍽️</div>
-            <h1 class="game-title">Mestre do Salão</h1>
-            <p class="subtitle">SIMULADOR DE GESTÃO E ATENDIMENTO</p>
+            <div class="logo-icon">🐱</div>
+            <h1 class="game-title">Cat Cafe</h1>
+            <p class="subtitle">SIMULADOR DE GESTÃO & ATENDIMENTO</p>
             <div class="menu-buttons">
                 <button id="btn-play" class="btn btn-primary"><span class="btn-icon">▶</span> Jogar</button>
                 <button id="btn-tutorial" class="btn btn-secondary"><span class="btn-icon">📖</span> Tutorial</button>
                 <button id="btn-credits" class="btn btn-secondary"><span class="btn-icon">⭐</span> Créditos</button>
-                <a id="btn-donate" href="https://ko-fi.com/" target="_blank" class="btn btn-secondary" style="margin-top: 10px; border-color: #DAA520; color: #DAA520;"><span class="btn-icon">☕</span> Apoie o Desenvolvedor</a>
+                <a id="btn-donate" href="https://ko-fi.com/" target="_blank" class="btn btn-secondary" style="margin-top: 10px; border-color: #FF8FAB; color: #FF8FAB;"><span class="btn-icon">🐾</span> Apoie o Desenvolvedor</a>
             </div>
             <p class="footer-text">Luis Antônio de Albuquerque Adamski | RA 00111736</p>
         </div>
@@ -31,20 +31,20 @@
         <div class="overlay-panel">
             <h2>📖 Como Jogar</h2>
             <div class="tutorial-steps">
-                <div class="step"><span class="step-num">1</span><p><strong>Recepcionar:</strong> Clique nos clientes na entrada para recepcioná-los e levá-los a uma mesa.</p></div>
-                <div class="step"><span class="step-num">2</span><p><strong>Anotar pedido:</strong> Clique na mesa com cliente sentado para anotar o pedido (comida + bebida).</p></div>
-                <div class="step"><span class="step-num">3</span><p><strong>Buscar prato:</strong> Quando o prato ficar pronto, clique no balcão da <strong>🍳 Cozinha</strong> para pegar.</p></div>
-                <div class="step"><span class="step-num">4</span><p><strong>Buscar bebida:</strong> Quando a bebida ficar pronta, clique no <strong>🍺 Bar</strong> (parede direita) para pegar.</p></div>
-                <div class="step"><span class="step-num">5</span><p><strong>Entregar:</strong> Clique na mesa para entregar. O cliente só come quando receber prato E bebida.</p></div>
-                <div class="step"><span class="step-num">6</span><p><strong>Limpar:</strong> Após o cliente sair, clique na mesa suja para limpá-la.</p></div>
+                <div class="step"><span class="step-num">1</span><p><strong>Recepcionar:</strong> Toque nos gatinhos na entrada para recepcioná-los e levá-los a uma mesa.</p></div>
+                <div class="step"><span class="step-num">2</span><p><strong>Anotar pedido:</strong> Toque na mesa com gato sentado para anotar o pedido (comida + bebida).</p></div>
+                <div class="step"><span class="step-num">3</span><p><strong>Buscar prato:</strong> Quando o prato ficar pronto, toque no balcão da <strong>🐟 Cozinha</strong> para pegar.</p></div>
+                <div class="step"><span class="step-num">4</span><p><strong>Buscar bebida:</strong> Quando a bebida ficar pronta, toque no <strong>🥛 Bar</strong> (parede direita) para pegar.</p></div>
+                <div class="step"><span class="step-num">5</span><p><strong>Entregar:</strong> Toque na mesa para entregar. O gatinho só come quando receber prato E bebida.</p></div>
+                <div class="step"><span class="step-num">6</span><p><strong>Limpar:</strong> Após o gatinho sair, toque na mesa suja para limpá-la.</p></div>
             </div>
             <div class="tutorial-tips">
-                <h3>💡 Dicas</h3>
+                <h3>🐾 Dicas</h3>
                 <ul>
-                    <li>Fique atento à barra de satisfação — ela cai se os clientes esperarem demais!</li>
+                    <li>Fique atento à barra de satisfação — ela cai se os gatinhos esperarem demais!</li>
                     <li>Bebidas preparam mais rápido que pratos — pegue-as primeiro!</li>
-                    <li>Use a câmera livre (arrastar/scroll) para ver o salão de outros ângulos.</li>
-                    <li>Complete níveis para ganhar dinheiro e desbloquear novos desafios.</li>
+                    <li>Use dois dedos para girar a câmera e ver o salão de outros ângulos.</li>
+                    <li>Complete níveis para ganhar moedas e desbloquear novas mesas!</li>
                 </ul>
             </div>
             <button id="btn-back-tutorial" class="btn btn-primary">← Voltar ao Menu</button>
@@ -67,7 +67,7 @@
                 </div>
                 <div class="credit-item">
                     <h3>Projeto</h3>
-                    <p>Mestre do Salão — Simulador de Gestão e Atendimento em Restaurantes</p>
+                    <p>Cat Cafe — Simulador de Gestão em Restaurante de Gatos</p>
                     <p class="credit-detail">Prototipagem com IA — 2026</p>
                 </div>
             </div>
@@ -81,22 +81,22 @@
 
         <!-- HUD Top Bar -->
         <div id="hud-top">
-            <div class="hud-item"><span class="hud-emoji">💰</span> DINHEIRO <span id="hud-money" class="hud-value money">R$ 0</span></div>
+            <div class="hud-item"><span class="hud-emoji">🐟</span> MOEDAS <span id="hud-money" class="hud-value money">R$ 0</span></div>
             <div class="hud-item"><span class="hud-emoji">⭐</span> PONTUAÇÃO <span id="hud-score" class="hud-value score">0</span></div>
-            <div class="hud-item"><span class="hud-emoji">😊</span> SATISFAÇÃO <div class="satisfaction-bar"><div id="hud-satisfaction" class="satisfaction-fill"></div></div></div>
+            <div class="hud-item"><span class="hud-emoji">😸</span> SATISFAÇÃO <div class="satisfaction-bar"><div id="hud-satisfaction" class="satisfaction-fill"></div></div></div>
             <div class="hud-item"><span class="hud-emoji">⏰</span> TEMPO <span id="hud-time" class="hud-value time">2:00</span></div>
-            <div class="hud-item"><span class="hud-emoji">📊</span> NÍVEL <span id="hud-level" class="hud-value level">1</span></div>
+            <div class="hud-item"><span class="hud-emoji">🐾</span> NÍVEL <span id="hud-level" class="hud-value level">1</span></div>
         </div>
 
         <!-- Orders Panel -->
         <div id="orders-panel">
-            <h3>📋 Pedidos Ativos</h3>
+            <h3>🐾 Pedidos Ativos</h3>
             <div id="orders-list"></div>
         </div>
 
         <!-- Bottom Message -->
         <div id="message-bar">
-            <span id="message-text">Clique em clientes na entrada para recepcioná-los</span>
+            <span id="message-text">Toque nos gatinhos na entrada para recepcioná-los</span>
         </div>
 
         <!-- Pause Button -->
@@ -141,8 +141,8 @@
     <!-- ========== GAME OVER OVERLAY ========== -->
     <div id="game-over" class="game-overlay hidden">
         <div class="overlay-panel result-panel">
-            <h2>😞 Fim de Jogo</h2>
-            <p class="game-over-msg">A satisfação dos clientes chegou a zero!</p>
+            <h2>😿 Fim de Jogo</h2>
+            <p class="game-over-msg">A satisfação dos gatinhos chegou a zero!</p>
             <div class="result-stats">
                 <div class="stat"><span class="stat-label">Nível Alcançado</span><span id="go-level" class="stat-value">1</span></div>
                 <div class="stat"><span class="stat-label">Pontuação Final</span><span id="go-score" class="stat-value">0</span></div>

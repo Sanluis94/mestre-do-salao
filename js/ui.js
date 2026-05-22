@@ -239,7 +239,7 @@ export function showMessage(text, duration = 4000) {
     if (messageTimeout) clearTimeout(messageTimeout);
     if (duration > 0) {
         messageTimeout = setTimeout(() => {
-            dom.messageText.textContent = 'Clique em clientes, mesas ou cozinha para interagir.';
+            dom.messageText.textContent = 'Toque nos gatinhos, mesas ou cozinha para interagir. 🐾';
         }, duration);
     }
 }
@@ -362,7 +362,7 @@ export function animateParticles() {
 
         particlesCtx.beginPath();
         particlesCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        particlesCtx.fillStyle = `rgba(218, 165, 32, ${p.alpha})`;
+        particlesCtx.fillStyle = `rgba(255, 143, 171, ${p.alpha})`;
         particlesCtx.fill();
     });
 }
