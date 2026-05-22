@@ -1,6 +1,6 @@
 // ==========================================
 // main.js — Entry Point, Game Loop, Events
-// Full Monetization: Tabs, Gacha, IAP, Skins, VIP
+// Full Monetization: Tabs, Gacha, IAP, Skins, VIP (with Defensive programming checks)
 // ==========================================
 import * as THREE from 'three';
 import { initScene, createRestaurant, createWaiterModel, createPlateModel, createDrinkModel } from './scene.js?v=10';
@@ -51,82 +51,118 @@ function stopMenuLoop() {
 
 // ---------- MENU EVENT LISTENERS ----------
 function setupMenuListeners() {
-    document.getElementById('btn-play').addEventListener('click', startGame);
-    document.getElementById('btn-tutorial').addEventListener('click', () => showScreen('tutorial-screen'));
-    document.getElementById('btn-credits').addEventListener('click', () => showScreen('credits-screen'));
-    document.getElementById('btn-back-tutorial').addEventListener('click', () => showScreen('menu-screen'));
-    document.getElementById('btn-back-credits').addEventListener('click', () => showScreen('menu-screen'));
+    const btnPlay = document.getElementById('btn-play');
+    if (btnPlay) btnPlay.addEventListener('click', startGame);
+    
+    const btnTutorial = document.getElementById('btn-tutorial');
+    if (btnTutorial) btnTutorial.addEventListener('click', () => showScreen('tutorial-screen'));
+    
+    const btnCredits = document.getElementById('btn-credits');
+    if (btnCredits) btnCredits.addEventListener('click', () => showScreen('credits-screen'));
+    
+    const btnBackTutorial = document.getElementById('btn-back-tutorial');
+    if (btnBackTutorial) btnBackTutorial.addEventListener('click', () => showScreen('menu-screen'));
+    
+    const btnBackCredits = document.getElementById('btn-back-credits');
+    if (btnBackCredits) btnBackCredits.addEventListener('click', () => showScreen('menu-screen'));
 
     // Game overlays
-    document.getElementById('btn-next-level').addEventListener('click', () => {
-        hideLevelComplete();
-        game.nextLevel();
-    });
+    const btnNextLevel = document.getElementById('btn-next-level');
+    if (btnNextLevel) {
+        btnNextLevel.addEventListener('click', () => {
+            hideLevelComplete();
+            game.nextLevel();
+        });
+    }
     
-    document.getElementById('btn-ad-double').addEventListener('click', (e) => {
-        showSimulatedAd(() => {
-            if (game) {
-                // Double the money earned in this level
-                const earned = game.levelMoney;
-                game.state.money += earned; 
-                saveProgress(game.state.money);
-                game.levelMoney *= 2;
-                document.getElementById('result-money').textContent = `R$ ${game.levelMoney.toFixed(2)}`;
-                document.getElementById('btn-ad-double').style.display = 'none'; // Hide button after using
-            }
+    const btnAdDouble = document.getElementById('btn-ad-double');
+    if (btnAdDouble) {
+        btnAdDouble.addEventListener('click', (e) => {
+            showSimulatedAd(() => {
+                if (game) {
+                    const earned = game.levelMoney;
+                    game.state.money += earned; 
+                    saveProgress(game.state.money);
+                    game.levelMoney *= 2;
+                    const resMoney = document.getElementById('result-money');
+                    if (resMoney) resMoney.textContent = `R$ ${game.levelMoney.toFixed(2)}`;
+                    btnAdDouble.style.display = 'none';
+                }
+            });
         });
-    });
+    }
 
-    document.getElementById('btn-back-menu').addEventListener('click', () => {
-        hideLevelComplete();
-        backToMenu();
-    });
-
-    document.getElementById('btn-ad-revive').addEventListener('click', (e) => {
-        showSimulatedAd(() => {
-            if (game) {
-                game.state.timeLeft += 30; // Matches button text (+30s)
-                game.state.satisfaction = 100; // Restore satisfaction so game doesn't immediately end
-                game.state.running = true;
-                hideGameOver();
-                document.getElementById('game-over').classList.add('hidden');
-                document.getElementById('btn-ad-revive').style.display = 'none'; // Can only revive once
-            }
+    const btnBackMenu = document.getElementById('btn-back-menu');
+    if (btnBackMenu) {
+        btnBackMenu.addEventListener('click', () => {
+            hideLevelComplete();
+            backToMenu();
         });
-    });
+    }
 
-    document.getElementById('btn-retry').addEventListener('click', () => {
-        hideGameOver();
-        if (game) game.restart();
-    });
+    const btnAdRevive = document.getElementById('btn-ad-revive');
+    if (btnAdRevive) {
+        btnAdRevive.addEventListener('click', (e) => {
+            showSimulatedAd(() => {
+                if (game) {
+                    game.state.timeLeft += 30;
+                    game.state.satisfaction = 100;
+                    game.state.running = true;
+                    hideGameOver();
+                    const goOverlay = document.getElementById('game-over');
+                    if (goOverlay) goOverlay.classList.add('hidden');
+                    btnAdRevive.style.display = 'none';
+                }
+            });
+        });
+    }
+
+    const btnRetry = document.getElementById('btn-retry');
+    if (btnRetry) {
+        btnRetry.addEventListener('click', () => {
+            hideGameOver();
+            if (game) game.restart();
+        });
+    }
 
     // --- SHOP LOGIC ---
     const openShop = () => {
         if (currentScreen === 'game') {
-            document.getElementById('level-complete').classList.add('hidden');
+            const lcOverlay = document.getElementById('level-complete');
+            if (lcOverlay) lcOverlay.classList.add('hidden');
         }
         const money = game ? game.state.money : loadProgress();
-        document.getElementById('shop-balance').textContent = money.toFixed(2);
-        document.getElementById('shop-gems-balance').textContent = shopState.gems;
+        const shopBal = document.getElementById('shop-balance');
+        if (shopBal) shopBal.textContent = money.toFixed(2);
+        const shopGemsBal = document.getElementById('shop-gems-balance');
+        if (shopGemsBal) shopGemsBal.textContent = shopState.gems;
+        
         updateShopButtons(money);
         updateSkinButtons();
         updateVIPButton();
         
-        // Shop is now an overlay, so we always just remove 'hidden'
-        document.getElementById('shop-screen').classList.remove('hidden');
+        const shopOverlay = document.getElementById('shop-screen');
+        if (shopOverlay) shopOverlay.classList.remove('hidden');
     };
     
-    document.getElementById('btn-shop').addEventListener('click', openShop);
-    document.getElementById('btn-shop-level').addEventListener('click', openShop);
+    const btnShop = document.getElementById('btn-shop');
+    if (btnShop) btnShop.addEventListener('click', openShop);
     
-    document.getElementById('btn-close-shop').addEventListener('click', () => {
-        document.getElementById('shop-screen').classList.add('hidden');
-        
-        if (currentScreen === 'game') {
-            // Restore level complete overlay
-            document.getElementById('level-complete').classList.remove('hidden');
-        }
-    });
+    const btnShopLvl = document.getElementById('btn-shop-level');
+    if (btnShopLvl) btnShopLvl.addEventListener('click', openShop);
+    
+    const btnCloseShop = document.getElementById('btn-close-shop');
+    if (btnCloseShop) {
+        btnCloseShop.addEventListener('click', () => {
+            const shopOverlay = document.getElementById('shop-screen');
+            if (shopOverlay) shopOverlay.classList.add('hidden');
+            
+            if (currentScreen === 'game') {
+                const lcOverlay = document.getElementById('level-complete');
+                if (lcOverlay) lcOverlay.classList.remove('hidden');
+            }
+        });
+    }
 
     setupShopButtons();
     setupShopTabs();
@@ -134,31 +170,46 @@ function setupMenuListeners() {
     setupIAPSystem();
     setupAdGemsButton();
 
-    document.getElementById('btn-go-menu').addEventListener('click', () => {
-        hideGameOver();
-        backToMenu();
-    });
-    document.getElementById('btn-pause').addEventListener('click', () => {
-        if (game) {
-            game.togglePause();
-            if (game.state.paused) {
-                showPause();
-            } else {
+    const btnGoMenu = document.getElementById('btn-go-menu');
+    if (btnGoMenu) {
+        btnGoMenu.addEventListener('click', () => {
+            hideGameOver();
+            backToMenu();
+        });
+    }
+    
+    const btnPause = document.getElementById('btn-pause');
+    if (btnPause) {
+        btnPause.addEventListener('click', () => {
+            if (game) {
+                game.togglePause();
+                if (game.state.paused) {
+                    showPause();
+                } else {
+                    hidePause();
+                }
+            }
+        });
+    }
+    
+    const btnResume = document.getElementById('btn-resume');
+    if (btnResume) {
+        btnResume.addEventListener('click', () => {
+            if (game) {
+                game.togglePause();
                 hidePause();
             }
-        }
-    });
-    document.getElementById('btn-resume').addEventListener('click', () => {
-        if (game) {
-            game.togglePause();
+        });
+    }
+    
+    const btnPauseMenu = document.getElementById('btn-pause-menu');
+    if (btnPauseMenu) {
+        btnPauseMenu.addEventListener('click', () => {
             hidePause();
-        }
-    });
-    document.getElementById('btn-pause-menu').addEventListener('click', () => {
-        hidePause();
-        if (game) game.state.running = false;
-        backToMenu();
-    });
+            if (game) game.state.running = false;
+            backToMenu();
+        });
+    }
 }
 
 // ==========================================
@@ -166,13 +217,11 @@ function setupMenuListeners() {
 // ==========================================
 function setupShopTabs() {
     const tabs = document.querySelectorAll('.shop-tab');
+    if (tabs.length === 0) return;
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            // Remove active from all tabs
             tabs.forEach(t => t.classList.remove('active'));
-            // Hide all sections
             document.querySelectorAll('.shop-section').forEach(s => s.classList.add('hidden'));
-            // Activate clicked tab + show section
             tab.classList.add('active');
             const sectionId = tab.getAttribute('data-tab');
             const section = document.getElementById(sectionId);
@@ -182,14 +231,15 @@ function setupShopTabs() {
 }
 
 // ==========================================
-// UPGRADES TAB — Shop Buttons (existing logic)
+// UPGRADES TAB — Shop Buttons
 // ==========================================
 function updateShopButtons(money) {
     const prices = getShopPrices();
 
-    // Update balance displays
-    document.getElementById('shop-balance').textContent = money.toFixed(2);
-    document.getElementById('shop-gems-balance').textContent = shopState.gems;
+    const shopBal = document.getElementById('shop-balance');
+    if (shopBal) shopBal.textContent = money.toFixed(2);
+    const shopGemsBal = document.getElementById('shop-gems-balance');
+    if (shopGemsBal) shopGemsBal.textContent = shopState.gems;
 
     const setupBtn = (id, price, isUnlocked, callback) => {
         const btn = document.getElementById(id);
@@ -202,7 +252,7 @@ function updateShopButtons(money) {
             btn.disabled = money < price;
             btn.onclick = () => {
                 if (money >= price) {
-                    money -= price; // local variable
+                    money -= price;
                     if (game) {
                         game.state.money = money;
                     }
@@ -251,6 +301,7 @@ function setupShopButtons() {
 // ==========================================
 function updateSkinButtons() {
     const skinItems = document.querySelectorAll('.skin-item');
+    if (skinItems.length === 0) return;
     skinItems.forEach(item => {
         const skinId = item.getAttribute('data-skin');
         const btn = item.querySelector('.btn-equip');
@@ -259,7 +310,6 @@ function updateSkinButtons() {
         const isOwned = shopState.ownedSkins.includes(skinId);
         const isActive = shopState.activeSkin === skinId;
 
-        // Remove all state classes
         btn.classList.remove('locked', 'btn-equip-active');
 
         if (isActive) {
@@ -317,67 +367,71 @@ function equipSkin(skinId) {
 let gachaRolling = false;
 
 function setupGachaSystem() {
-    // Gacha with Gems (10 gems)
-    document.getElementById('btn-gacha-gems').addEventListener('click', () => {
-        if (gachaRolling) return;
-        if (shopState.gems < 10) {
-            showMessage('💎 Gemas insuficientes! Você precisa de 10 gemas.', 3000);
-            return;
-        }
-        shopState.gems -= 10;
-        if (game) game.state.gems = shopState.gems;
-        document.getElementById('shop-gems-balance').textContent = shopState.gems;
-        saveProgress(game ? game.state.money : loadProgress());
-        rollGacha();
-    });
-
-    // Gacha with Ad (free spin)
-    document.getElementById('btn-gacha-ad').addEventListener('click', () => {
-        if (gachaRolling) return;
-        showSimulatedAd(() => {
+    const btnGems = document.getElementById('btn-gacha-gems');
+    if (btnGems) {
+        btnGems.addEventListener('click', () => {
+            if (gachaRolling) return;
+            if (shopState.gems < 10) {
+                showMessage('💎 Gemas insuficientes! Você precisa de 10 gemas.', 3000);
+                return;
+            }
+            shopState.gems -= 10;
+            if (game) game.state.gems = shopState.gems;
+            const shopGemsBal = document.getElementById('shop-gems-balance');
+            if (shopGemsBal) shopGemsBal.textContent = shopState.gems;
+            saveProgress(game ? game.state.money : loadProgress());
             rollGacha();
         });
-    });
+    }
 
-    // Close gacha overlay
-    document.getElementById('btn-gacha-close').addEventListener('click', () => {
-        document.getElementById('gacha-overlay').classList.add('hidden');
-        updateSkinButtons();
-        const money = game ? game.state.money : loadProgress();
-        updateShopButtons(money);
-    });
+    const btnAd = document.getElementById('btn-gacha-ad');
+    if (btnAd) {
+        btnAd.addEventListener('click', () => {
+            if (gachaRolling) return;
+            showSimulatedAd(() => {
+                rollGacha();
+            });
+        });
+    }
+
+    const btnClose = document.getElementById('btn-gacha-close');
+    if (btnClose) {
+        btnClose.addEventListener('click', () => {
+            const overlay = document.getElementById('gacha-overlay');
+            if (overlay) overlay.classList.add('hidden');
+            updateSkinButtons();
+            const money = game ? game.state.money : loadProgress();
+            updateShopButtons(money);
+        });
+    }
 }
 
 function rollGacha() {
     gachaRolling = true;
 
-    // Show overlay
     const overlay = document.getElementById('gacha-overlay');
+    if (!overlay) return;
     overlay.classList.remove('hidden');
 
-    // Reset animation states
     const capsule = overlay.querySelector('.gacha-reveal-capsule');
     const light = overlay.querySelector('.gacha-reveal-light');
     const card = overlay.querySelector('.gacha-reveal-card');
     const closeBtn = document.getElementById('btn-gacha-close');
     const dupBadge = document.getElementById('gacha-duplicate-badge');
 
-    capsule.classList.remove('shake', 'open');
-    light.classList.remove('active');
-    card.classList.add('hidden');
-    closeBtn.disabled = true;
-    dupBadge.classList.add('hidden');
+    if (capsule) capsule.classList.remove('shake', 'open');
+    if (light) light.classList.remove('active');
+    if (card) card.classList.add('hidden');
+    if (closeBtn) closeBtn.disabled = true;
+    if (dupBadge) dupBadge.classList.add('hidden');
 
-    // Phase 1: Shake capsule (1.5s)
-    capsule.classList.add('shake');
+    if (capsule) capsule.classList.add('shake');
 
     setTimeout(() => {
-        // Phase 2: Open capsule
-        capsule.classList.remove('shake');
-        capsule.classList.add('open');
-        light.classList.add('active');
+        if (capsule) capsule.classList.remove('shake');
+        if (capsule) capsule.classList.add('open');
+        if (light) light.classList.add('active');
 
-        // Weighted RNG: Chef 45%, Astronauta 35%, Ouro 20%
         const roll = Math.random() * 100;
         let rolledSkin;
         if (roll < 45) rolledSkin = 'chef';
@@ -386,17 +440,19 @@ function rollGacha() {
 
         const skinInfo = SKIN_DATA[rolledSkin];
 
-        // Update card display
-        document.getElementById('gacha-card-emoji').textContent = skinInfo.emoji;
-        document.getElementById('gacha-card-title').textContent = skinInfo.name;
+        const cardEmoji = document.getElementById('gacha-card-emoji');
+        if (cardEmoji) cardEmoji.textContent = skinInfo.emoji;
+        const cardTitle = document.getElementById('gacha-card-title');
+        if (cardTitle) cardTitle.textContent = skinInfo.name;
 
-        // Check for duplicate
         const isDuplicate = shopState.ownedSkins.includes(rolledSkin);
+        const cardDesc = document.getElementById('gacha-card-desc');
         if (isDuplicate) {
-            document.getElementById('gacha-card-desc').textContent = 'Skin repetida! Você recebeu moedas como compensação.';
-            dupBadge.textContent = 'Repetida: +R$ 100 🪙';
-            dupBadge.classList.remove('hidden');
-            // Add R$ 100 compensation
+            if (cardDesc) cardDesc.textContent = 'Skin repetida! Você recebeu moedas como compensação.';
+            if (dupBadge) {
+                dupBadge.textContent = 'Repetida: +R$ 100 🪙';
+                dupBadge.classList.remove('hidden');
+            }
             if (game) {
                 game.state.money += 100;
                 game.levelMoney += 100;
@@ -404,16 +460,15 @@ function rollGacha() {
             saveProgress(game ? game.state.money : (loadProgress() + 100));
             playSound('money');
         } else {
-            document.getElementById('gacha-card-desc').textContent = 'Sua nova skin foi desbloqueada! 🎉';
+            if (cardDesc) cardDesc.textContent = 'Sua nova skin foi desbloqueada! 🎉';
             shopState.ownedSkins.push(rolledSkin);
             saveProgress(game ? game.state.money : loadProgress());
             playSound('levelup');
         }
 
-        // Phase 3: Show card (after 0.5s)
         setTimeout(() => {
-            card.classList.remove('hidden');
-            closeBtn.disabled = false;
+            if (card) card.classList.remove('hidden');
+            if (closeBtn) closeBtn.disabled = false;
             gachaRolling = false;
         }, 500);
 
@@ -423,62 +478,80 @@ function rollGacha() {
 // ==========================================
 // IN-APP PURCHASE (IAP) SIMULATION
 // ==========================================
-let iapPending = null; // { type, name, price, gems, vip }
+let iapPending = null;
 
 function setupIAPSystem() {
-    // Buy 30 Gems
-    document.getElementById('btn-buy-gems-30').addEventListener('click', () => {
-        openIAP({ type: 'gems', name: '💎 30 Gemas Estelares', price: 'R$ 4,90', gems: 30, vip: false });
-    });
+    const btnGems30 = document.getElementById('btn-buy-gems-30');
+    if (btnGems30) {
+        btnGems30.addEventListener('click', () => {
+            openIAP({ type: 'gems', name: '💎 30 Gemas Estelares', price: 'R$ 4,90', gems: 30, vip: false });
+        });
+    }
 
-    // Buy 80 Gems
-    document.getElementById('btn-buy-gems-80').addEventListener('click', () => {
-        openIAP({ type: 'gems', name: '💎 80 Gemas Estelares', price: 'R$ 9,90', gems: 80, vip: false });
-    });
+    const btnGems80 = document.getElementById('btn-buy-gems-80');
+    if (btnGems80) {
+        btnGems80.addEventListener('click', () => {
+            openIAP({ type: 'gems', name: '💎 80 Gemas Estelares', price: 'R$ 9,90', gems: 80, vip: false });
+        });
+    }
 
-    // Buy VIP
-    document.getElementById('btn-buy-vip').addEventListener('click', () => {
-        if (shopState.vipActive) {
-            showMessage('👑 Você já é VIP! Aproveite o bônus de 1.5x moedas.', 3000);
-            return;
-        }
-        // Can buy with 30 gems OR money
-        if (shopState.gems >= 30) {
-            openIAP({ type: 'vip-gems', name: '👑 Clube VIP Permanente', price: '30 Gemas', gems: -30, vip: true });
-        } else {
-            openIAP({ type: 'vip-money', name: '👑 Clube VIP Permanente', price: 'R$ 19,90', gems: 0, vip: true });
-        }
-    });
+    const btnVip = document.getElementById('btn-buy-vip');
+    if (btnVip) {
+        btnVip.addEventListener('click', () => {
+            if (shopState.vipActive) {
+                showMessage('👑 Você já é VIP! Aproveite o bônus de 1.5x moedas.', 3000);
+                return;
+            }
+            if (shopState.gems >= 30) {
+                openIAP({ type: 'vip-gems', name: '👑 Clube VIP Permanente', price: '30 Gemas', gems: -30, vip: true });
+            } else {
+                openIAP({ type: 'vip-money', name: '👑 Clube VIP Permanente', price: 'R$ 19,90', gems: 0, vip: true });
+            }
+        });
+    }
 
-    // IAP Confirm
-    document.getElementById('btn-iap-confirm').addEventListener('click', () => {
-        processIAP();
-    });
+    const btnConfirm = document.getElementById('btn-iap-confirm');
+    if (btnConfirm) {
+        btnConfirm.addEventListener('click', () => {
+            processIAP();
+        });
+    }
 
-    // IAP Cancel
-    document.getElementById('btn-iap-cancel').addEventListener('click', () => {
-        document.getElementById('iap-overlay').classList.add('hidden');
-        iapPending = null;
-    });
+    const btnCancel = document.getElementById('btn-iap-cancel');
+    if (btnCancel) {
+        btnCancel.addEventListener('click', () => {
+            const overlay = document.getElementById('iap-overlay');
+            if (overlay) overlay.classList.add('hidden');
+            iapPending = null;
+        });
+    }
 }
 
 function openIAP(config) {
     iapPending = config;
 
-    // Setup dialog
-    document.getElementById('iap-item-name').textContent = config.name;
-    document.getElementById('iap-item-price').textContent = config.price;
-    document.getElementById('iap-status-text').textContent = 'Toque abaixo para confirmar a transação segura.';
+    const itemName = document.getElementById('iap-item-name');
+    if (itemName) itemName.textContent = config.name;
+    const itemPrice = document.getElementById('iap-item-price');
+    if (itemPrice) itemPrice.textContent = config.price;
+    const statusText = document.getElementById('iap-status-text');
+    if (statusText) statusText.textContent = 'Toque abaixo para confirmar a transação segura.';
 
-    // Reset states
-    document.getElementById('iap-spinner').classList.add('hidden');
-    document.getElementById('iap-success-icon').classList.add('hidden');
-    document.getElementById('btn-iap-confirm').classList.remove('hidden');
-    document.getElementById('btn-iap-cancel').classList.remove('hidden');
-    document.getElementById('btn-iap-confirm').disabled = false;
+    const spinner = document.getElementById('iap-spinner');
+    if (spinner) spinner.classList.add('hidden');
+    const successIcon = document.getElementById('iap-success-icon');
+    if (successIcon) successIcon.classList.add('hidden');
+    
+    const confirmBtn = document.getElementById('btn-iap-confirm');
+    if (confirmBtn) {
+        confirmBtn.classList.remove('hidden');
+        confirmBtn.disabled = false;
+    }
+    const cancelBtn = document.getElementById('btn-iap-cancel');
+    if (cancelBtn) cancelBtn.classList.remove('hidden');
 
-    // Show dialog
-    document.getElementById('iap-overlay').classList.remove('hidden');
+    const overlay = document.getElementById('iap-overlay');
+    if (overlay) overlay.classList.remove('hidden');
 }
 
 function processIAP() {
@@ -490,24 +563,20 @@ function processIAP() {
     const confirmBtn = document.getElementById('btn-iap-confirm');
     const cancelBtn = document.getElementById('btn-iap-cancel');
 
-    // Phase 1: Show processing
-    confirmBtn.classList.add('hidden');
-    cancelBtn.classList.add('hidden');
-    spinner.classList.remove('hidden');
-    statusText.textContent = 'Processando pagamento seguro...';
+    if (confirmBtn) confirmBtn.classList.add('hidden');
+    if (cancelBtn) cancelBtn.classList.add('hidden');
+    if (spinner) spinner.classList.remove('hidden');
+    if (statusText) statusText.textContent = 'Processando pagamento seguro...';
 
-    // Phase 2: Success after 2 seconds
     setTimeout(() => {
-        spinner.classList.add('hidden');
-        successIcon.classList.remove('hidden');
-        statusText.textContent = 'Pagamento confirmado! Aproveite! ✨';
+        if (spinner) spinner.classList.add('hidden');
+        if (successIcon) successIcon.classList.remove('hidden');
+        if (statusText) statusText.textContent = 'Pagamento confirmado! Aproveite! ✨';
 
-        // Grant rewards
         if (iapPending.gems > 0) {
             shopState.gems += iapPending.gems;
         } else if (iapPending.gems < 0) {
-            // VIP bought with gems
-            shopState.gems += iapPending.gems; // subtract
+            shopState.gems += iapPending.gems;
         }
 
         if (iapPending.vip) {
@@ -521,13 +590,16 @@ function processIAP() {
         saveProgress(game ? game.state.money : loadProgress());
         playSound('money');
 
-        // Phase 3: Close after 1.5 seconds
         setTimeout(() => {
-            document.getElementById('iap-overlay').classList.add('hidden');
-            // Refresh all shop UI
+            const overlay = document.getElementById('iap-overlay');
+            if (overlay) overlay.classList.add('hidden');
+            
             const money = game ? game.state.money : loadProgress();
-            document.getElementById('shop-balance').textContent = money.toFixed(2);
-            document.getElementById('shop-gems-balance').textContent = shopState.gems;
+            const shopBal = document.getElementById('shop-balance');
+            if (shopBal) shopBal.textContent = money.toFixed(2);
+            const shopGemsBal = document.getElementById('shop-gems-balance');
+            if (shopGemsBal) shopGemsBal.textContent = shopState.gems;
+            
             updateShopButtons(money);
             updateVIPButton();
             iapPending = null;
@@ -556,11 +628,14 @@ function updateVIPButton() {
 // AD-GEMS REWARD BUTTON
 // ==========================================
 function setupAdGemsButton() {
-    document.getElementById('btn-ad-gem').addEventListener('click', () => {
+    const btn = document.getElementById('btn-ad-gem');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
         showSimulatedAd(() => {
             shopState.gems += 5;
             if (game) game.state.gems = shopState.gems;
-            document.getElementById('shop-gems-balance').textContent = shopState.gems;
+            const shopGemsBal = document.getElementById('shop-gems-balance');
+            if (shopGemsBal) shopGemsBal.textContent = shopState.gems;
             saveProgress(game ? game.state.money : loadProgress());
             updateVIPButton();
             playSound('money');
