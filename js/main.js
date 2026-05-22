@@ -98,7 +98,11 @@ function setupMenuListeners() {
         const money = game ? game.state.money : loadProgress();
         document.getElementById('shop-balance').textContent = money.toFixed(2);
         updateShopButtons(money);
-        showScreen('shop-screen');
+        if (currentScreen === 'game') {
+            document.getElementById('shop-screen').classList.remove('hidden');
+        } else {
+            showScreen('shop-screen');
+        }
     };
     document.getElementById('btn-shop').addEventListener('click', openShop);
     document.getElementById('btn-shop-level').addEventListener('click', openShop);
@@ -120,7 +124,11 @@ function setupMenuListeners() {
     document.getElementById('btn-pause').addEventListener('click', () => {
         if (game) {
             game.togglePause();
-            if (game.state.paused) showPause();
+            if (game.state.paused) {
+                showPause();
+            } else {
+                hidePause();
+            }
         }
     });
     document.getElementById('btn-resume').addEventListener('click', () => {

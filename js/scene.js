@@ -9,8 +9,8 @@ let scene, camera, renderer, controls;
 // ---------- SCENE INITIALIZATION ----------
 export function initScene(canvas) {
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1A0A1E);
-    scene.fog = new THREE.Fog(0x1A0A1E, 50, 80);
+    scene.background = new THREE.Color(0xFFF6E5);
+    scene.fog = new THREE.Fog(0xFFF6E5, 30, 70);
 
     camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 200);
     camera.position.set(22, 22, 22);
@@ -34,11 +34,11 @@ export function initScene(canvas) {
     controls.target.set(0, 0, 0);
 
     // Lighting
-    const ambient = new THREE.AmbientLight(0xfff5e1, 0.35);
+    const ambient = new THREE.AmbientLight(0xFFF0DD, 0.75);
     scene.add(ambient);
 
-    const dirLight = new THREE.DirectionalLight(0xffeedd, 0.5);
-    dirLight.position.set(8, 15, 8);
+    const dirLight = new THREE.DirectionalLight(0xFFF5E6, 0.8);
+    dirLight.position.set(12, 20, 8);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.set(1024, 1024);
     dirLight.shadow.camera.near = 1;
@@ -49,7 +49,7 @@ export function initScene(canvas) {
     dirLight.shadow.camera.bottom = -15;
     scene.add(dirLight);
 
-    const hemiLight = new THREE.HemisphereLight(0x8888ff, 0x443300, 0.2);
+    const hemiLight = new THREE.HemisphereLight(0xFFFFFF, 0xFFE8D6, 0.4);
     scene.add(hemiLight);
 
     window.addEventListener('resize', () => {
@@ -64,41 +64,41 @@ export function initScene(canvas) {
 // ---------- MATERIALS ----------
 const materials = {
     // Cat Cafe warm pastel palette
-    floor1: new THREE.MeshStandardMaterial({ color: 0xF5E6D3, roughness: 0.8 }),
-    floor2: new THREE.MeshStandardMaterial({ color: 0xE8D5C0, roughness: 0.8 }),
-    wall: new THREE.MeshStandardMaterial({ color: 0xFFF0E0, roughness: 0.7 }),
-    wallTrim: new THREE.MeshStandardMaterial({ color: 0xD4A574, roughness: 0.6 }),
-    ceiling: new THREE.MeshStandardMaterial({ color: 0x3a3a5c, roughness: 0.9 }),
-    tableWood: new THREE.MeshStandardMaterial({ color: 0x8B5E3C, roughness: 0.5 }),
-    tableWhite: new THREE.MeshStandardMaterial({ color: 0xFFF8F0, roughness: 0.4 }),
-    chairRed: new THREE.MeshStandardMaterial({ color: 0xFF8FAB, roughness: 0.6 }),  // Pastel pink chairs
-    chairLeg: new THREE.MeshStandardMaterial({ color: 0xD4A574, roughness: 0.4, metalness: 0.2 }),
-    lampShade: new THREE.MeshStandardMaterial({ color: 0xFFD700, roughness: 0.3, emissive: 0xFFAA00, emissiveIntensity: 0.5 }),
-    lampWire: new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.5, metalness: 0.5 }),
-    counter: new THREE.MeshStandardMaterial({ color: 0xFFF5EE, roughness: 0.3 }),
-    counterTop: new THREE.MeshStandardMaterial({ color: 0x8B6F5E, roughness: 0.2, metalness: 0.3 }),
-    doorFrame: new THREE.MeshStandardMaterial({ color: 0xA0724A, roughness: 0.5 }),
-    painting: new THREE.MeshStandardMaterial({ color: 0x2A4A3A, roughness: 0.5 }),
-    paintingFrame: new THREE.MeshStandardMaterial({ color: 0xD4A574, roughness: 0.4, metalness: 0.2 }),
-    doorIndicator: new THREE.MeshStandardMaterial({ color: 0x88FF88, emissive: 0x44DD44, emissiveIntensity: 0.8, roughness: 0.3 }),
+    floor1: new THREE.MeshStandardMaterial({ color: 0xFFEBD6, roughness: 0.9 }),
+    floor2: new THREE.MeshStandardMaterial({ color: 0xFFDFBF, roughness: 0.9 }),
+    wall: new THREE.MeshStandardMaterial({ color: 0xFFFAEB, roughness: 0.8 }),
+    wallTrim: new THREE.MeshStandardMaterial({ color: 0xFFCBA4, roughness: 0.7 }),
+    ceiling: new THREE.MeshStandardMaterial({ color: 0xFFEBD6, roughness: 1.0 }),
+    tableWood: new THREE.MeshStandardMaterial({ color: 0xE2C2A4, roughness: 0.6 }),
+    tableWhite: new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.5 }),
+    chairRed: new THREE.MeshStandardMaterial({ color: 0xFFD1DC, roughness: 0.7 }),  // Pastel pink chairs
+    chairLeg: new THREE.MeshStandardMaterial({ color: 0xD3B599, roughness: 0.5 }),
+    lampShade: new THREE.MeshStandardMaterial({ color: 0xFFE5B4, roughness: 0.4, emissive: 0xFFDAB9, emissiveIntensity: 0.3 }),
+    lampWire: new THREE.MeshStandardMaterial({ color: 0x998473, roughness: 0.6 }),
+    counter: new THREE.MeshStandardMaterial({ color: 0xFFEFD5, roughness: 0.4 }),
+    counterTop: new THREE.MeshStandardMaterial({ color: 0xD2B48C, roughness: 0.3 }),
+    doorFrame: new THREE.MeshStandardMaterial({ color: 0xDEB887, roughness: 0.6 }),
+    painting: new THREE.MeshStandardMaterial({ color: 0x8FBC8F, roughness: 0.6 }),
+    paintingFrame: new THREE.MeshStandardMaterial({ color: 0xCD853F, roughness: 0.5 }),
+    doorIndicator: new THREE.MeshStandardMaterial({ color: 0x98FB98, emissive: 0x90EE90, emissiveIntensity: 0.6, roughness: 0.4 }),
     // Bar materials (milk bar / treat counter)
-    barWood: new THREE.MeshStandardMaterial({ color: 0x6B4226, roughness: 0.5 }),
-    barTop: new THREE.MeshStandardMaterial({ color: 0xFFF5EE, roughness: 0.15, metalness: 0.2 }),
-    barShelf: new THREE.MeshStandardMaterial({ color: 0x8B6F5E, roughness: 0.4, metalness: 0.1 }),
-    barMetal: new THREE.MeshStandardMaterial({ color: 0xCCBBAA, roughness: 0.2, metalness: 0.6 }),
-    barNeon: new THREE.MeshStandardMaterial({ color: 0xFF88CC, emissive: 0xFF55AA, emissiveIntensity: 0.9, roughness: 0.3 }),  // Pink neon
-    bottleGreen: new THREE.MeshStandardMaterial({ color: 0x1A5A2A, roughness: 0.3, metalness: 0.2, transparent: true, opacity: 0.85 }),
-    bottleAmber: new THREE.MeshStandardMaterial({ color: 0x8B5E3C, roughness: 0.3, metalness: 0.2, transparent: true, opacity: 0.85 }),
-    bottleClear: new THREE.MeshStandardMaterial({ color: 0xCCDDEE, roughness: 0.2, metalness: 0.3, transparent: true, opacity: 0.6 }),
-    glassBody: new THREE.MeshStandardMaterial({ color: 0xDDEEFF, roughness: 0.1, metalness: 0.3, transparent: true, opacity: 0.5 }),
-    drinkLiquid: new THREE.MeshStandardMaterial({ color: 0xFFFFEE, roughness: 0.4, transparent: true, opacity: 0.85 }),  // Milk-like
+    barWood: new THREE.MeshStandardMaterial({ color: 0xE8B890, roughness: 0.6 }),
+    barTop: new THREE.MeshStandardMaterial({ color: 0xFFFAF0, roughness: 0.2 }),
+    barShelf: new THREE.MeshStandardMaterial({ color: 0xCDA585, roughness: 0.5 }),
+    barMetal: new THREE.MeshStandardMaterial({ color: 0xDEB887, roughness: 0.4, metalness: 0.2 }),
+    barNeon: new THREE.MeshStandardMaterial({ color: 0xFFB6C1, emissive: 0xFFC0CB, emissiveIntensity: 0.8, roughness: 0.4 }),
+    bottleGreen: new THREE.MeshStandardMaterial({ color: 0xA8E6CF, roughness: 0.2, transparent: true, opacity: 0.9 }),
+    bottleAmber: new THREE.MeshStandardMaterial({ color: 0xFFD3B6, roughness: 0.2, transparent: true, opacity: 0.9 }),
+    bottleClear: new THREE.MeshStandardMaterial({ color: 0xFDFD96, roughness: 0.1, transparent: true, opacity: 0.8 }),
+    glassBody: new THREE.MeshStandardMaterial({ color: 0xF0F8FF, roughness: 0.1, transparent: true, opacity: 0.6 }),
+    drinkLiquid: new THREE.MeshStandardMaterial({ color: 0xFFF5EE, roughness: 0.3, transparent: true, opacity: 0.95 }),
     // Cat fur materials
-    catBlack: new THREE.MeshStandardMaterial({ color: 0x1A1A1A, roughness: 0.9 }),
-    catWhite: new THREE.MeshStandardMaterial({ color: 0xFFF8F0, roughness: 0.85 }),
-    catOrange: new THREE.MeshStandardMaterial({ color: 0xE8833A, roughness: 0.9 }),
-    catGray: new THREE.MeshStandardMaterial({ color: 0x888899, roughness: 0.9 }),
-    catPink: new THREE.MeshStandardMaterial({ color: 0xFFB6C1, roughness: 0.7 }),  // Nose/inner ear
-    catBowTie: new THREE.MeshStandardMaterial({ color: 0xFF3355, roughness: 0.5 }),
+    catBlack: new THREE.MeshStandardMaterial({ color: 0x3D3A3B, roughness: 0.95 }),
+    catWhite: new THREE.MeshStandardMaterial({ color: 0xFFFAFA, roughness: 0.95 }),
+    catOrange: new THREE.MeshStandardMaterial({ color: 0xFFAD7A, roughness: 0.95 }),
+    catGray: new THREE.MeshStandardMaterial({ color: 0xAEB3B7, roughness: 0.95 }),
+    catPink: new THREE.MeshStandardMaterial({ color: 0xFFC5D9, roughness: 0.8 }),  // Nose/inner ear
+    catBowTie: new THREE.MeshStandardMaterial({ color: 0xFF9E9E, roughness: 0.6 }),
 };
 
 // ---------- BUILD RESTAURANT ----------
