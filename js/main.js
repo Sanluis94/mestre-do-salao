@@ -98,20 +98,20 @@ function setupMenuListeners() {
         const money = game ? game.state.money : loadProgress();
         document.getElementById('shop-balance').textContent = money.toFixed(2);
         updateShopButtons(money);
-        if (currentScreen === 'game') {
-            document.getElementById('shop-screen').classList.remove('hidden');
-        } else {
-            showScreen('shop-screen');
-        }
+        
+        // Shop is now an overlay, so we always just remove 'hidden'
+        document.getElementById('shop-screen').classList.remove('hidden');
     };
+    
     document.getElementById('btn-shop').addEventListener('click', openShop);
     document.getElementById('btn-shop-level').addEventListener('click', openShop);
+    
     document.getElementById('btn-close-shop').addEventListener('click', () => {
+        document.getElementById('shop-screen').classList.add('hidden');
+        
         if (currentScreen === 'game') {
-            document.getElementById('shop-screen').classList.add('hidden');
+            // Restore level complete overlay
             document.getElementById('level-complete').classList.remove('hidden');
-        } else {
-            showScreen('menu-screen');
         }
     });
 
