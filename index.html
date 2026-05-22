@@ -20,6 +20,7 @@
                 <button id="btn-play" class="btn btn-primary"><span class="btn-icon">▶</span> Jogar</button>
                 <button id="btn-tutorial" class="btn btn-secondary"><span class="btn-icon">📖</span> Tutorial</button>
                 <button id="btn-credits" class="btn btn-secondary"><span class="btn-icon">⭐</span> Créditos</button>
+                <a id="btn-donate" href="https://ko-fi.com/" target="_blank" class="btn btn-secondary" style="margin-top: 10px; border-color: #DAA520; color: #DAA520;"><span class="btn-icon">☕</span> Apoie o Desenvolvedor</a>
             </div>
             <p class="footer-text">Luis Antônio de Albuquerque Adamski | RA 00111736</p>
         </div>
@@ -130,7 +131,8 @@
                 <div class="stat"><span class="stat-label">Satisfação Final</span><span id="result-satisfaction" class="stat-value">100%</span></div>
             </div>
             <div class="result-buttons">
-                <button id="btn-next-level" class="btn btn-primary">Próximo Nível ▶</button>
+                <button id="btn-ad-double" class="btn btn-primary" style="background: linear-gradient(135deg, #FF9800, #F57C00); color: white;"><span class="btn-icon">📺</span> Ad: Dobrar Recompensa!</button>
+                <button id="btn-next-level" class="btn btn-primary" style="margin-top: 5px;">Próximo Nível ▶</button>
                 <button id="btn-back-menu" class="btn btn-secondary">Menu Principal</button>
             </div>
         </div>
@@ -147,7 +149,8 @@
                 <div class="stat"><span class="stat-label">Dinheiro Total</span><span id="go-money" class="stat-value">R$ 0</span></div>
             </div>
             <div class="result-buttons">
-                <button id="btn-retry" class="btn btn-primary">Tentar Novamente</button>
+                <button id="btn-ad-revive" class="btn btn-primary" style="background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white;"><span class="btn-icon">📺</span> Ad: Reviver (+30s)</button>
+                <button id="btn-retry" class="btn btn-primary" style="margin-top: 5px;">Tentar Novamente</button>
                 <button id="btn-go-menu" class="btn btn-secondary">Menu Principal</button>
             </div>
         </div>
@@ -161,6 +164,18 @@
                 <button id="btn-resume" class="btn btn-primary">▶ Continuar</button>
                 <button id="btn-pause-menu" class="btn btn-secondary">Menu Principal</button>
             </div>
+        </div>
+    </div>
+
+    <!-- ========== AD SIMULATION OVERLAY ========== -->
+    <div id="ad-overlay" class="game-overlay hidden" style="z-index: 100; background: #000;">
+        <div style="text-align: center; color: white;">
+            <h2 style="font-family: var(--font-display); color: #FF9800; margin-bottom: 20px;">📺 Anúncio (Simulação)</h2>
+            <p style="font-size: 1.2rem; margin-bottom: 20px;">Apoie o desenvolvedor assistindo a este anúncio.</p>
+            <div style="width: 300px; height: 10px; background: #333; border-radius: 5px; margin: 0 auto; overflow: hidden;">
+                <div id="ad-progress-bar" style="width: 0%; height: 100%; background: #FF9800; transition: width 1s linear;"></div>
+            </div>
+            <p id="ad-timer-text" style="margin-top: 15px; color: #aaa;">O anúncio termina em <span id="ad-time-left">3</span>s...</p>
         </div>
     </div>
 

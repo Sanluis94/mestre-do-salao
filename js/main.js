@@ -7,7 +7,7 @@ import { Game } from './gameplay.js';
 import {
     initUI, initParticles, animateParticles,
     showScreen, hideLevelComplete, hideGameOver,
-    showPause, hidePause, showMessage
+    showPause, hidePause, showMessage, showSimulatedAd
 } from './ui.js';
 
 // ---------- STATE ----------
@@ -53,14 +53,42 @@ function setupMenuListeners() {
         hideLevelComplete();
         game.nextLevel();
     });
+    
+    document.getElementById('btn-ad-double').addEventListener('click', (e) => {
+        showSimulatedAd(() => {
+            if (game) {
+                // Double the money earned in this level
+                const earned = game.levelMoney;
+                game.state.money += earned; 
+                game.levelMoney *= 2;
+                document.getElementById('result-money').textContent = `R$ ${game.levelMoney.toFixed(2)}`;
+                e.target.style.display = 'none'; // Hide button after using
+            }
+        });
+    });
+
     document.getElementById('btn-back-menu').addEventListener('click', () => {
         hideLevelComplete();
         backToMenu();
     });
+
     document.getElementById('btn-retry').addEventListener('click', () => {
         hideGameOver();
         game.restart();
     });
+
+    document.getElementById('btn-ad-revive').addEventListener('click', (e) => {
+        showSimulatedAd(() => {
+            if (game) {
+                hideGameOver();
+                game.state.satisfaction = 50; // Restore 50%
+                game.state.timeLeft += 30; // Extra 30 seconds
+                game.state.running = true;
+                e.target.style.display = 'none'; // Hide button after using
+            }
+        });
+    });
+
     document.getElementById('btn-go-menu').addEventListener('click', () => {
         hideGameOver();
         backToMenu();
@@ -101,6 +129,7 @@ function startGame() {
 
         // Click handler
         canvas.addEventListener('click', onGameClick);
+        canvas.addEventListener('touchstart', onGameTouchStart, { passive: true });
         canvas.addEventListener('touchend', onGameTouch);
     }
 
@@ -159,9 +188,23 @@ function onGameClick(event) {
     }
 }
 
+let touchStartX = 0;
+let touchStartY = 0;
+
+function onGameTouchStart(event) {
+    if (!event.changedTouches.length) return;
+    const touch = event.changedTouches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+}
+
 function onGameTouch(event) {
     if (!game || !sceneData || !event.changedTouches.length) return;
     const touch = event.changedTouches[0];
+
+    // Calculate distance to differentiate tap vs drag
+    const dist = Math.hypot(touch.clientX - touchStartX, touch.clientY - touchStartY);
+    if (dist > 15) return; // If moved more than 15px, it's a drag, ignore click
 
     mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;

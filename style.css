@@ -518,13 +518,32 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: var(--fon
 
 /* --- Responsive --- */
 @media (max-width: 768px) {
-    .game-title { font-size: 2.5rem; }
-    .btn { width: 240px; padding: 0.85rem 1.5rem; font-size: 1rem; }
-    #hud-top { gap: 6px; }
-    .hud-item { padding: 6px 10px; font-size: 0.65rem; }
-    #orders-panel { width: 180px; }
-    .overlay-panel { padding: 1.5rem; }
-    .btn-icon-only { right: 195px; }
-    .combo-indicator { top: 50px; padding: 6px 14px; }
-    .combo-indicator #combo-text { font-size: 0.9rem; }
+    .game-title { font-size: 2.2rem; }
+    .btn { width: 220px; padding: 0.8rem 1.2rem; font-size: 0.95rem; }
+    
+    #hud-top { gap: 4px; top: 5px; left: 5px; right: 5px; justify-content: flex-start; }
+    .hud-item { padding: 4px 8px; font-size: 0.6rem; border-radius: 15px; }
+    
+    #orders-panel { 
+        width: 150px; 
+        top: 60px; 
+        right: 5px; 
+        padding: 8px; 
+        max-height: 40vh; 
+        opacity: 0.85; /* More transparent on mobile */
+    }
+    .order-item { padding: 6px; font-size: 0.65rem; }
+    .order-item .order-table { font-size: 0.6rem; }
+    
+    .overlay-panel { padding: 1.5rem; width: 95%; }
+    .btn-icon-only { right: 5px; top: 60px; width: 35px; height: 35px; font-size: 0.9rem; }
+    
+    .combo-indicator { top: 40px; padding: 4px 10px; }
+    .combo-indicator #combo-text { font-size: 0.8rem; }
+    
+    .carrying-indicator { bottom: 50px; padding: 4px 12px; }
+    .carrying-indicator #carrying-text { font-size: 0.75rem; }
+    
+    #message-bar { padding: 6px 15px; bottom: 10px; }
+    #message-text { font-size: 0.75rem; }
 }

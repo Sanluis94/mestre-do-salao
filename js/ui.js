@@ -257,6 +257,11 @@ export function showLevelComplete(stats) {
     document.getElementById('result-score').textContent = stats.score;
     document.getElementById('result-money').textContent = `R$ ${stats.money}`;
     document.getElementById('result-satisfaction').textContent = `${Math.round(stats.satisfaction)}%`;
+    
+    // Reset ad button visibility
+    const adBtn = document.getElementById('btn-ad-double');
+    if (adBtn) adBtn.style.display = 'block';
+
     dom.levelComplete.classList.remove('hidden');
     playSound('levelup');
 }
@@ -266,13 +271,50 @@ export function showGameOver(stats) {
     document.getElementById('go-level').textContent = stats.level;
     document.getElementById('go-score').textContent = stats.score;
     document.getElementById('go-money').textContent = `R$ ${stats.money}`;
+
+    // Reset ad button visibility
+    const adBtn = document.getElementById('btn-ad-revive');
+    if (adBtn) adBtn.style.display = 'block';
+
     dom.gameOver.classList.remove('hidden');
     playSound('gameover');
 }
 export function hideGameOver() { dom.gameOver.classList.add('hidden'); }
 
 export function showPause() { dom.pauseOverlay.classList.remove('hidden'); }
-export function hidePause() { dom.pauseOverlay.classList.add('hidden'); }
+export function hidePause() {
+    document.getElementById('pause-overlay').classList.add('hidden');
+}
+
+// ---------- AD SIMULATION ----------
+export function showSimulatedAd(callback) {
+    const overlay = document.getElementById('ad-overlay');
+    const bar = document.getElementById('ad-progress-bar');
+    const timeText = document.getElementById('ad-time-left');
+    
+    overlay.classList.remove('hidden');
+    bar.style.transition = 'none';
+    bar.style.width = '0%';
+    
+    let timeLeft = 3;
+    timeText.textContent = timeLeft;
+    
+    // Force reflow
+    bar.offsetHeight;
+    bar.style.transition = 'width 3s linear';
+    bar.style.width = '100%';
+    
+    const interval = setInterval(() => {
+        timeLeft--;
+        if (timeLeft >= 0) timeText.textContent = timeLeft;
+    }, 1000);
+    
+    setTimeout(() => {
+        clearInterval(interval);
+        overlay.classList.add('hidden');
+        if (callback) callback();
+    }, 3000);
+}
 
 // ---------- PARTICLES (Menu Background) ----------
 let particlesCtx, particles = [];
