@@ -14,21 +14,21 @@ import {
 
 // ---------- FOOD MENU (prepared in Kitchen) ----------
 const FOOD_MENU = [
-    { id: 'prato_dia', name: 'Prato do Dia', emoji: '🍛', price: 15, cookTime: 6, station: 'kitchen' },
-    { id: 'massa', name: 'Massa Especial', emoji: '🍝', price: 22, cookTime: 8, station: 'kitchen' },
-    { id: 'file', name: 'Filé Premium', emoji: '🥩', price: 35, cookTime: 11, station: 'kitchen' },
-    { id: 'sobremesa', name: 'Sobremesa', emoji: '🍰', price: 12, cookTime: 4, station: 'kitchen' },
-    { id: 'salada', name: 'Salada Gourmet', emoji: '🥗', price: 18, cookTime: 5, station: 'kitchen' },
+    { id: 'prato_dia', name: 'Ração Premium', emoji: '🥣', price: 15, cookTime: 6, station: 'kitchen' },
+    { id: 'massa', name: 'Lasanha de Atum', emoji: '🐟', price: 22, cookTime: 8, station: 'kitchen' },
+    { id: 'file', name: 'Sashimi Fresco', emoji: '🍣', price: 35, cookTime: 11, station: 'kitchen' },
+    { id: 'sobremesa', name: 'Sachê de Carne', emoji: '🥫', price: 12, cookTime: 4, station: 'kitchen' },
+    { id: 'salada', name: 'Grama de Gato', emoji: '🌿', price: 18, cookTime: 5, station: 'kitchen' },
 ];
 
 // ---------- DRINKS MENU (prepared at the Bar) ----------
 const DRINKS_MENU = [
-    { id: 'suco', name: 'Suco Natural', emoji: '🧃', price: 8, cookTime: 3, station: 'bar' },
-    { id: 'refrigerante', name: 'Refrigerante', emoji: '🥤', price: 6, cookTime: 2, station: 'bar' },
-    { id: 'cerveja', name: 'Cerveja Artesanal', emoji: '🍺', price: 14, cookTime: 4, station: 'bar' },
-    { id: 'vinho', name: 'Taça de Vinho', emoji: '🍷', price: 20, cookTime: 5, station: 'bar' },
-    { id: 'cocktail', name: 'Cocktail Especial', emoji: '🍹', price: 25, cookTime: 6, station: 'bar' },
-    { id: 'agua', name: 'Água Mineral', emoji: '💧', price: 4, cookTime: 1, station: 'bar' },
+    { id: 'suco', name: 'Leite Fresco', emoji: '🥛', price: 8, cookTime: 3, station: 'bar' },
+    { id: 'refrigerante', name: 'Caldo de Frango', emoji: '🥣', price: 6, cookTime: 2, station: 'bar' },
+    { id: 'cerveja', name: 'Catnip Frio', emoji: '🍃', price: 14, cookTime: 4, station: 'bar' },
+    { id: 'vinho', name: 'Água da Fonte', emoji: '⛲', price: 20, cookTime: 5, station: 'bar' },
+    { id: 'cocktail', name: 'Vitamina Felina', emoji: '🍹', price: 25, cookTime: 6, station: 'bar' },
+    { id: 'agua', name: 'Água Pura', emoji: '💧', price: 4, cookTime: 1, station: 'bar' },
 ];
 
 // ---------- SHOP & PROGRESSION STATE ----------

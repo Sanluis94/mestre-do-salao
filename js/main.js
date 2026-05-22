@@ -92,6 +92,9 @@ function setupMenuListeners() {
 
     // --- SHOP LOGIC ---
     const openShop = () => {
+        if (currentScreen === 'game') {
+            document.getElementById('level-complete').classList.add('hidden');
+        }
         const money = game ? game.state.money : loadProgress();
         document.getElementById('shop-balance').textContent = money.toFixed(2);
         updateShopButtons(money);
@@ -102,6 +105,7 @@ function setupMenuListeners() {
     document.getElementById('btn-close-shop').addEventListener('click', () => {
         if (currentScreen === 'game') {
             document.getElementById('shop-screen').classList.add('hidden');
+            document.getElementById('level-complete').classList.remove('hidden');
         } else {
             showScreen('menu-screen');
         }
