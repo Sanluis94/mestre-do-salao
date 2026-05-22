@@ -8,7 +8,8 @@ import { Game, shopState, saveProgress, getShopPrices, loadProgress } from './ga
 import {
     initUI, initParticles, animateParticles,
     showScreen, hideLevelComplete, hideGameOver,
-    showPause, hidePause, showMessage, showSimulatedAd
+    showPause, hidePause, showMessage, showSimulatedAd,
+    playSound
 } from './ui.js?v=10';
 
 // ---------- STATE ----------
@@ -401,10 +402,12 @@ function rollGacha() {
                 game.levelMoney += 100;
             }
             saveProgress(game ? game.state.money : (loadProgress() + 100));
+            playSound('money');
         } else {
             document.getElementById('gacha-card-desc').textContent = 'Sua nova skin foi desbloqueada! 🎉';
             shopState.ownedSkins.push(rolledSkin);
             saveProgress(game ? game.state.money : loadProgress());
+            playSound('levelup');
         }
 
         // Phase 3: Show card (after 0.5s)
@@ -516,6 +519,7 @@ function processIAP() {
         }
 
         saveProgress(game ? game.state.money : loadProgress());
+        playSound('money');
 
         // Phase 3: Close after 1.5 seconds
         setTimeout(() => {
@@ -559,6 +563,7 @@ function setupAdGemsButton() {
             document.getElementById('shop-gems-balance').textContent = shopState.gems;
             saveProgress(game ? game.state.money : loadProgress());
             updateVIPButton();
+            playSound('money');
             showMessage('💎 +5 Gemas Estelares! Obrigado por assistir!', 3000);
         });
     });
