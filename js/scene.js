@@ -662,65 +662,154 @@ function addCatFace(group, headY, noseMat) {
     }
 }
 
-export function createWaiterModel() {
+export function createWaiterModel(skin = 'default') {
     const group = new THREE.Group();
     group.userData = { type: 'waiter' };
 
-    // Body (tuxedo cat — black body)
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.22, 1.0, 10),
-        materials.catBlack);
+    // Setup materials based on active skin
+    let primaryMat = materials.catBlack;
+    let secondaryMat = materials.catWhite;
+    let earMat = materials.catBlack;
+    let tailMat = materials.catBlack;
+    let hasApron = true;
+    let bowTieColor = 0xFF9E9E; // Red/Pink
+    let isGold = false;
+
+    if (skin === 'chef') {
+        primaryMat = new THREE.MeshStandardMaterial({ color: 0xE8833A, roughness: 0.95 }); // Orange/ginger
+        secondaryMat = materials.catWhite;
+        earMat = primaryMat;
+        tailMat = primaryMat;
+        bowTieColor = 0x81C784; // Green chef neckerchief
+        hasApron = true;
+    } else if (skin === 'astronauta') {
+        primaryMat = new THREE.MeshStandardMaterial({ color: 0x888899, roughness: 0.9 }); // Grey space fur
+        secondaryMat = new THREE.MeshStandardMaterial({ color: 0xE0E0E0, roughness: 0.6 }); // Silver chest
+        earMat = primaryMat;
+        tailMat = primaryMat;
+        hasApron = false; // space suit instead of apron
+        bowTieColor = null; // space helmet base handles neck area
+    } else if (skin === 'ouro') {
+        isGold = true;
+        primaryMat = new THREE.MeshStandardMaterial({ color: 0xD4AF37, roughness: 0.15, metalness: 0.85 }); // Gold
+        secondaryMat = new THREE.MeshStandardMaterial({ color: 0xFFDF73, roughness: 0.2, metalness: 0.7 }); // Gold light
+        earMat = primaryMat;
+        tailMat = primaryMat;
+        hasApron = false;
+        bowTieColor = 0xD32F2F; // Crimson bow tie on golden fur
+    }
+
+    // Body
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.22, 1.0, 10), primaryMat);
     body.position.y = 0.8;
     body.castShadow = true;
     group.add(body);
 
-    // White chest/belly patch
-    const belly = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.14, 0.6, 8),
-        materials.catWhite);
+    // Belly patch
+    const belly = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.14, 0.6, 8), secondaryMat);
     belly.position.set(0, 0.75, 0.1);
     group.add(belly);
 
-    // Apron (tiny waiter apron)
-    const apron = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.35, 0.04),
-        new THREE.MeshStandardMaterial({ color: 0xFFF8F0, roughness: 0.5 }));
-    apron.position.set(0, 0.55, 0.22);
-    group.add(apron);
-
-    // Bow tie (red)
-    const bowCenter = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), materials.catBowTie);
-    bowCenter.position.set(0, 1.18, 0.2);
-    group.add(bowCenter);
-    for (const side of [-1, 1]) {
-        const wing = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.1, 4), materials.catBowTie);
-        wing.position.set(side * 0.07, 1.18, 0.2);
-        wing.rotation.z = side * Math.PI / 2;
-        group.add(wing);
+    // Optional Apron
+    if (hasApron) {
+        const apron = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.35, 0.04),
+            new THREE.MeshStandardMaterial({ color: 0xFFF8F0, roughness: 0.5 }));
+        apron.position.set(0, 0.55, 0.22);
+        group.add(apron);
+    } else if (skin === 'astronauta') {
+        // Space chest pad
+        const chestPad = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.24, 0.04),
+            new THREE.MeshStandardMaterial({ color: 0x00E5FF, emissive: 0x00E5FF, emissiveIntensity: 0.4, roughness: 0.2 }));
+        chestPad.position.set(0, 0.75, 0.21);
+        group.add(chestPad);
     }
 
-    // Head (round cat head)
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 14),
-        materials.catBlack);
+    // Bow tie
+    if (bowTieColor !== null) {
+        const catBowMat = new THREE.MeshStandardMaterial({ color: bowTieColor, roughness: 0.6 });
+        const bowCenter = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), catBowMat);
+        bowCenter.position.set(0, 1.18, 0.2);
+        group.add(bowCenter);
+        for (const side of [-1, 1]) {
+            const wing = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.1, 4), catBowMat);
+            wing.position.set(side * 0.07, 1.18, 0.2);
+            wing.rotation.z = side * Math.PI / 2;
+            group.add(wing);
+        }
+    }
+
+    // Head
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 14), primaryMat);
     head.position.y = 1.52;
     head.castShadow = true;
     group.add(head);
 
-    // White face mask (tuxedo marking)
-    const faceMask = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12),
-        materials.catWhite);
+    // Face mask
+    const faceMask = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), secondaryMat);
     faceMask.position.set(0, 1.48, 0.1);
     faceMask.scale.set(1, 0.9, 0.6);
     group.add(faceMask);
 
     // Ears, face, tail
-    addCatEars(group, 1.52, materials.catBlack, materials.catPink);
+    addCatEars(group, 1.52, earMat, materials.catPink);
     addCatFace(group, 1.52, materials.catPink);
-    addCatTail(group, 0.8, materials.catBlack);
+    addCatTail(group, 0.8, tailMat);
 
     // Paws (front feet visible)
-    const pawMat = materials.catWhite;
+    const pawMat = secondaryMat;
     for (const side of [-1, 1]) {
         const paw = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), pawMat);
         paw.position.set(side * 0.18, 0.32, 0.1);
         group.add(paw);
+    }
+
+    // --- Accessory overlays based on skin ---
+    if (skin === 'chef') {
+        // Chef Hat
+        const hatBase = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.14, 12),
+            new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.6 }));
+        hatBase.position.set(0, 1.8, 0.02);
+        hatBase.rotation.x = 0.05;
+        group.add(hatBase);
+
+        const hatPuff = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12),
+            new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.6 }));
+        hatPuff.position.set(0, 1.9, 0.02);
+        hatPuff.scale.set(1, 0.7, 1);
+        group.add(hatPuff);
+    } else if (skin === 'astronauta') {
+        // Space Helmet (glass bubble)
+        const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.38, 16, 16),
+            new THREE.MeshStandardMaterial({ color: 0xE0F7FA, roughness: 0.05, transparent: true, opacity: 0.3, metalness: 0.1 }));
+        helmet.position.set(0, 1.52, 0.04);
+        group.add(helmet);
+
+        // Space Helmet Collar
+        const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.28, 0.06, 16),
+            new THREE.MeshStandardMaterial({ color: 0xCFD8DC, roughness: 0.3, metalness: 0.4 }));
+        collar.position.set(0, 1.25, 0.02);
+        group.add(collar);
+    } else if (skin === 'ouro') {
+        // Crown
+        const crownBase = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.11, 0.08, 12),
+            new THREE.MeshStandardMaterial({ color: 0xD32F2F, roughness: 0.3 })); // Crimson base cushion
+        crownBase.position.set(0, 1.78, 0.02);
+        crownBase.rotation.x = 0.05;
+        group.add(crownBase);
+
+        const crownGold = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.10, 0.06, 12, 1, true),
+            new THREE.MeshStandardMaterial({ color: 0xFFD700, roughness: 0.1, metalness: 0.9 })); // Gold trim
+        crownGold.position.set(0, 1.79, 0.02);
+        group.add(crownGold);
+
+        // Tiny crown tips (cross or spheres)
+        const tipMat = new THREE.MeshStandardMaterial({ color: 0xFFD700, roughness: 0.1, metalness: 0.9 });
+        for (let i = 0; i < 4; i++) {
+            const angle = (i * Math.PI) / 2;
+            const tip = new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 6), tipMat);
+            tip.position.set(Math.cos(angle) * 0.1, 1.84, Math.sin(angle) * 0.1 + 0.02);
+            group.add(tip);
+        }
     }
 
     return group;

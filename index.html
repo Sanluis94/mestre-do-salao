@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=9">
+    <link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
     <!-- ========== MENU SCREEN ========== -->
@@ -85,6 +85,7 @@
         <!-- HUD Top Bar -->
         <div id="hud-top">
             <div class="hud-item"><span class="hud-emoji">🐟</span> MOEDAS <span id="hud-money" class="hud-value money">R$ 0</span></div>
+            <div class="hud-item"><span class="hud-emoji">💎</span> GEMAS <span id="hud-gems-val" class="hud-value gems">0</span></div>
             <div class="hud-item"><span class="hud-emoji">⭐</span> PONTUAÇÃO <span id="hud-score" class="hud-value score">0</span></div>
             <div class="hud-item"><span class="hud-emoji">😸</span> SATISFAÇÃO <div class="satisfaction-bar"><div id="hud-satisfaction" class="satisfaction-fill"></div></div></div>
             <div class="hud-item"><span class="hud-emoji">⏰</span> TEMPO <span id="hud-time" class="hud-value time">2:00</span></div>
@@ -192,66 +193,222 @@
     <div id="shop-screen" class="game-overlay hidden">
         <div class="overlay-panel shop-panel">
             <h2>Loja do Cat Cafe 🏪</h2>
-            <div class="shop-money">Saldo: 🐟 <span id="shop-balance">0</span></div>
-            <div class="shop-items-container">
-                <div class="shop-item">
-                    <div class="shop-item-info">
-                        <h3>Mesa Extra</h3>
-                        <p>Atende mais gatinhos!</p>
+            <div class="shop-balance-bar">
+                <div class="balance-item">🐟 <span id="shop-balance">0</span></div>
+                <div class="balance-item">💎 <span id="shop-gems-balance">0</span></div>
+            </div>
+            
+            <!-- Shop Tabs Navigation -->
+            <div class="shop-tabs">
+                <button id="tab-upgrades" class="shop-tab active" data-tab="upgrades-section">🔧 Upgrades</button>
+                <button id="tab-skins" class="shop-tab" data-tab="skins-section">🐱 Skins & Gacha</button>
+                <button id="tab-gems" class="shop-tab" data-tab="gems-section">💎 VIP & Gemas</button>
+            </div>
+
+            <!-- SECTION 1: UPGRADES -->
+            <div id="upgrades-section" class="shop-section">
+                <div class="shop-items-container">
+                    <div class="shop-item">
+                        <div class="shop-item-info">
+                            <h3>Mesa Extra</h3>
+                            <p>Atende mais gatinhos!</p>
+                        </div>
+                        <button id="btn-buy-table" class="btn btn-buy">R$ 150</button>
                     </div>
-                    <button id="btn-buy-table" class="btn btn-buy">R$ 150</button>
-                </div>
-                <div class="shop-item">
-                    <div class="shop-item-info">
-                        <h3>Patinhas Rápidas</h3>
-                        <p>Garçom anda mais rápido</p>
+                    <div class="shop-item">
+                        <div class="shop-item-info">
+                            <h3>Patinhas Rápidas</h3>
+                            <p>Garçom anda mais rápido</p>
+                        </div>
+                        <button id="btn-buy-speed" class="btn btn-buy">R$ 200</button>
                     </div>
-                    <button id="btn-buy-speed" class="btn btn-buy">R$ 200</button>
-                </div>
-                <div class="shop-item">
-                    <div class="shop-item-info">
-                        <h3>Cardápio: Lasanha de Atum 🐟</h3>
-                        <p>Novo prato quente (+ Lucro)</p>
+                    <div class="shop-item">
+                        <div class="shop-item-info">
+                            <h3>Cardápio: Lasanha de Atum 🐟</h3>
+                            <p>Novo prato quente (+ Lucro)</p>
+                        </div>
+                        <button id="btn-buy-massa" class="btn btn-buy">R$ 120</button>
                     </div>
-                    <button id="btn-buy-massa" class="btn btn-buy">R$ 120</button>
-                </div>
-                <div class="shop-item">
-                    <div class="shop-item-info">
-                        <h3>Cardápio: Grama de Gato 🌿</h3>
-                        <p>Novo prato chique</p>
+                    <div class="shop-item">
+                        <div class="shop-item-info">
+                            <h3>Cardápio: Grama de Gato 🌿</h3>
+                            <p>Novo prato chique</p>
+                        </div>
+                        <button id="btn-buy-salada" class="btn btn-buy">R$ 150</button>
                     </div>
-                    <button id="btn-buy-salada" class="btn btn-buy">R$ 150</button>
-                </div>
-                <div class="shop-item">
-                    <div class="shop-item-info">
-                        <h3>Cardápio: Sashimi Fresco 🍣</h3>
-                        <p>O favorito dos felinos</p>
+                    <div class="shop-item">
+                        <div class="shop-item-info">
+                            <h3>Cardápio: Sashimi Fresco 🍣</h3>
+                            <p>O favorito dos felinos</p>
+                        </div>
+                        <button id="btn-buy-file" class="btn btn-buy">R$ 300</button>
                     </div>
-                    <button id="btn-buy-file" class="btn btn-buy">R$ 300</button>
-                </div>
-                <div class="shop-item">
-                    <div class="shop-item-info">
-                        <h3>Bebida: Caldo de Frango 🥣</h3>
-                        <p>Bebida rápida</p>
+                    <div class="shop-item">
+                        <div class="shop-item-info">
+                            <h3>Bebida: Caldo de Frango 🥣</h3>
+                            <p>Bebida rápida</p>
+                        </div>
+                        <button id="btn-buy-refrigerante" class="btn btn-buy">R$ 80</button>
                     </div>
-                    <button id="btn-buy-refrigerante" class="btn btn-buy">R$ 80</button>
-                </div>
-                <div class="shop-item">
-                    <div class="shop-item-info">
-                        <h3>Bebida: Catnip Frio 🍃</h3>
-                        <p>Lucro extra no bar</p>
+                    <div class="shop-item">
+                        <div class="shop-item-info">
+                            <h3>Bebida: Catnip Frio 🍃</h3>
+                            <p>Lucro extra no bar</p>
+                        </div>
+                        <button id="btn-buy-cerveja" class="btn btn-buy">R$ 150</button>
                     </div>
-                    <button id="btn-buy-cerveja" class="btn btn-buy">R$ 150</button>
-                </div>
-                <div class="shop-item">
-                    <div class="shop-item-info">
-                        <h3>Bebida: Vitamina & Água da Fonte ⛲</h3>
-                        <p>Bebidas de luxo</p>
+                    <div class="shop-item">
+                        <div class="shop-item-info">
+                            <h3>Bebida: Vitamina & Água da Fonte ⛲</h3>
+                            <p>Bebidas de luxo</p>
+                        </div>
+                        <button id="btn-buy-vinho" class="btn btn-buy">R$ 400</button>
                     </div>
-                    <button id="btn-buy-vinho" class="btn btn-buy">R$ 400</button>
                 </div>
             </div>
-            <button id="btn-close-shop" class="btn btn-secondary">Voltar</button>
+
+            <!-- SECTION 2: SKINS & GACHA -->
+            <div id="skins-section" class="shop-section hidden">
+                <div class="gacha-box">
+                    <h3>Máquina Gacha de Cosméticos 🎰</h3>
+                    <p>Sorteie acessórios 3D incríveis para seu garçom felino!</p>
+                    <div class="gacha-machine-graphic">🔮</div>
+                    <div class="gacha-buttons">
+                        <button id="btn-gacha-gems" class="btn btn-gacha">💎 10 Gemas</button>
+                        <button id="btn-gacha-ad" class="btn btn-ad btn-gacha-ad">📹 Giro Grátis (Ad)</button>
+                    </div>
+                </div>
+                
+                <div class="skins-list">
+                    <h3>Sua Coleção de Skins</h3>
+                    <div class="skin-item" data-skin="default">
+                        <div class="skin-info">
+                            <span class="skin-emoji">🤵</span>
+                            <div>
+                                <h4>Clássico (Tuxedo)</h4>
+                                <p>Tuxedo preto e gravata borboleta</p>
+                            </div>
+                        </div>
+                        <button class="btn btn-equip btn-equip-active" data-skin="default">Equipado</button>
+                    </div>
+                    <div class="skin-item" data-skin="chef">
+                        <div class="skin-info">
+                            <span class="skin-emoji">🧑‍🍳</span>
+                            <div>
+                                <h4>Gato Chef</h4>
+                                <p>Chapéu de chef e lenço verde</p>
+                            </div>
+                        </div>
+                        <button class="btn btn-equip locked" data-skin="chef">Bloqueado</button>
+                    </div>
+                    <div class="skin-item" data-skin="astronauta">
+                        <div class="skin-info">
+                            <span class="skin-emoji">🧑‍🚀</span>
+                            <div>
+                                <h4>Gato Astronauta</h4>
+                                <p>Capacete espacial de vidro neon</p>
+                            </div>
+                        </div>
+                        <button class="btn btn-equip locked" data-skin="astronauta">Bloqueado</button>
+                    </div>
+                    <div class="skin-item" data-skin="ouro">
+                        <div class="skin-info">
+                            <span class="skin-emoji">👑</span>
+                            <div>
+                                <h4>Gato de Ouro</h4>
+                                <p>Corpo dourado e coroa imperial</p>
+                            </div>
+                        </div>
+                        <button class="btn btn-equip locked" data-skin="ouro">Bloqueado</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 3: VIP & GEMS -->
+            <div id="gems-section" class="shop-section hidden">
+                <div class="vip-box glowing-gold-border">
+                    <div class="vip-header">
+                        <span class="vip-crown">👑</span>
+                        <h3>Clube VIP Permanente</h3>
+                    </div>
+                    <p>Suba de nível no serviço! Obtenha permanentemente **1.5x mais moedas** em todos os atendimentos concluídos.</p>
+                    <button id="btn-buy-vip" class="btn btn-buy glowing-gold-btn">Assinar (30 Gemas ou R$ 19,90)</button>
+                </div>
+
+                <div class="iap-box">
+                    <h3>💎 Comprar Gemas Estelares</h3>
+                    <p>Adquira gemas estelares para rodar o Gacha ou assinar o VIP imediatamente!</p>
+                    <div class="iap-items">
+                        <div class="iap-item">
+                            <div class="iap-info">
+                                <h4>💎 30 Gemas</h4>
+                                <p>Pacote Iniciante</p>
+                            </div>
+                            <button id="btn-buy-gems-30" class="btn btn-buy">R$ 4,90</button>
+                        </div>
+                        <div class="iap-item">
+                            <div class="iap-info">
+                                <h4>💎 80 Gemas</h4>
+                                <p>Pacote de Luxo</p>
+                            </div>
+                            <button id="btn-buy-gems-80" class="btn btn-buy">R$ 9,90</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ad-gem-box">
+                    <h3>📹 Apoie com Anúncios</h3>
+                    <p>Assista a um vídeo curto e ganhe **+5 Gemas Estelares** de graça!</p>
+                    <button id="btn-ad-gem" class="btn btn-ad">📹 Assistir (+5 Gemas)</button>
+                </div>
+            </div>
+
+            <button id="btn-close-shop" class="btn btn-secondary" style="margin-top: 15px;">Voltar</button>
+        </div>
+    </div>
+
+    <!-- ========== GACHA REVEAL OVERLAY ========== -->
+    <div id="gacha-overlay" class="game-overlay hidden" style="z-index: 120;">
+        <div class="gacha-reveal-container">
+            <div class="gacha-reveal-capsule">🔮</div>
+            <div class="gacha-reveal-light"></div>
+            <div class="gacha-reveal-card hidden">
+                <div class="gacha-card-shine"></div>
+                <div id="gacha-card-emoji" class="gacha-card-emoji">🤵</div>
+                <h2 id="gacha-card-title">Gato Chef</h2>
+                <p id="gacha-card-desc">Sua nova skin foi desbloqueada!</p>
+                <div id="gacha-duplicate-badge" class="gacha-duplicate-badge hidden">Repetida: +R$ 100</div>
+                <button id="btn-gacha-close" class="btn btn-primary" style="margin-top: 20px; width: 100%;">Maravilha! 🐾</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MOBILE IAP SIMULATION OVERLAY ========== -->
+    <div id="iap-overlay" class="game-overlay hidden" style="z-index: 150; background: rgba(0,0,0,0.65);">
+        <div class="iap-phone-dialog">
+            <div class="iap-dialog-header">
+                <div class="store-brand">🛡️ Google Play Secure Checkout</div>
+                <div class="store-user">luis.adamski@gmail.com</div>
+            </div>
+            <div class="iap-dialog-body">
+                <div class="iap-item-summary">
+                    <span id="iap-item-name" class="iap-summary-title">💎 80 Gemas Estelares</span>
+                    <span id="iap-item-price" class="iap-summary-price">R$ 9,90</span>
+                </div>
+                <div class="iap-payment-method">
+                    <span>💳 Visa •••• 9876</span>
+                    <span class="secure-tag">Verificado por Visa</span>
+                </div>
+                <div class="iap-status-container">
+                    <div id="iap-spinner" class="iap-spinner hidden"></div>
+                    <div id="iap-success-icon" class="iap-success-icon hidden">✔️</div>
+                    <p id="iap-status-text">Toque abaixo para confirmar a transação segura.</p>
+                </div>
+            </div>
+            <div class="iap-dialog-footer">
+                <button id="btn-iap-cancel" class="btn btn-secondary">Cancelar</button>
+                <button id="btn-iap-confirm" class="btn btn-primary" style="background: #00875F; border-color: #00875F; color: white;">Confirmar com 1-Clique</button>
+            </div>
         </div>
     </div>
 
@@ -265,9 +422,9 @@
         }
     }
     </script>
-    <script type="module" src="js/ui.js?v=9"></script>
-    <script type="module" src="js/scene.js?v=9"></script>
-    <script type="module" src="js/gameplay.js?v=9"></script>
-    <script type="module" src="js/main.js?v=9"></script>
+    <script type="module" src="js/ui.js?v=10"></script>
+    <script type="module" src="js/scene.js?v=10"></script>
+    <script type="module" src="js/gameplay.js?v=10"></script>
+    <script type="module" src="js/main.js?v=10"></script>
 </body>
 </html>

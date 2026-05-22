@@ -6,11 +6,11 @@ import {
     createWaiterModel, createCustomerModel, createPlateModel,
     createDirtyTableIndicator, createPatienceBar, updatePatienceBar,
     updateKitchenReady, updateBarReady, createDrinkModel
-} from './scene.js?v=9';
+} from './scene.js?v=10';
 import {
     updateHUD, updateOrders, showMessage, showLevelComplete, showGameOver,
     showFloatingMoney, updateCombo, updateCarrying, playSound
-} from './ui.js?v=9';
+} from './ui.js?v=10';
 
 // ---------- FOOD MENU (prepared in Kitchen) ----------
 const FOOD_MENU = [
@@ -37,6 +37,10 @@ export const shopState = {
     waiterSpeedLevel: 1, // 1 to 5
     foodUnlocked: ['prato_dia', 'sobremesa'],
     drinksUnlocked: ['agua', 'suco'],
+    gems: 0,
+    activeSkin: 'default',
+    ownedSkins: ['default'],
+    vipActive: false,
 };
 
 export function saveProgress(money) {
@@ -48,7 +52,14 @@ export function loadProgress() {
     if (data) {
         try {
             const parsed = JSON.parse(data);
-            if (parsed.shopState) Object.assign(shopState, parsed.shopState);
+            if (parsed.shopState) {
+                // Merge carefully to ensure default values exist for older saves
+                Object.assign(shopState, parsed.shopState);
+                if (shopState.gems === undefined) shopState.gems = 0;
+                if (!shopState.activeSkin) shopState.activeSkin = 'default';
+                if (!shopState.ownedSkins) shopState.ownedSkins = ['default'];
+                if (shopState.vipActive === undefined) shopState.vipActive = false;
+            }
             return parsed.money || 0;
         } catch (e) {
             console.error("Save data corrupted", e);
@@ -398,6 +409,7 @@ export class Game {
         this.state = {
             money: loadProgress(), score: 0, satisfaction: 100,
             timeLeft: 120, level: 1, paused: false, running: false,
+            gems: shopState.gems,
         };
 
         this.waiter = null;
@@ -449,7 +461,7 @@ export class Game {
         this.clearAll();
 
         // Create waiter
-        this.waiter = createWaiterModel();
+        this.waiter = createWaiterModel(shopState.activeSkin);
         this.waiter.position.set(0, 0, 0);
         this.scene.add(this.waiter);
         this.waiterState = 'idle';
@@ -585,6 +597,7 @@ export class Game {
             }
         }
 
+        this.state.gems = shopState.gems;
         updateHUD(this.state);
         updateOrders(this.orders.filter(o => o.state !== 'done'));
     }
@@ -817,12 +830,13 @@ export class Game {
             const comboBonus = comboMultiplier > 1 ? Math.round(earned * (comboMultiplier - 1) * 0.3) : 0;
             const tipAmount = patienceRatio > 0.5 ? Math.round(earned * patienceRatio * 0.2) : 0;
             const totalEarned = earned + tipAmount + comboBonus;
+            const finalEarned = shopState.vipActive ? Math.round(totalEarned * 1.5) : totalEarned;
 
-            this.state.money += totalEarned;
+            this.state.money += finalEarned;
             saveProgress(this.state.money);
             
-            this.state.score += totalEarned + patienceBonus;
-            this.levelMoney += totalEarned;
+            this.state.score += finalEarned + patienceBonus;
+            this.levelMoney += finalEarned;
             this.state.satisfaction = Math.min(100, this.state.satisfaction + 3 + (comboMultiplier > 1 ? 2 : 0));
 
             // Floating money popups
@@ -849,6 +863,7 @@ export class Game {
             if (tipAmount > 0) msg += ` + R$ ${tipAmount} gorjeta`;
             if (comboBonus > 0) msg += ` + R$ ${comboBonus} combo x${comboMultiplier}`;
             msg += ` | +${patienceBonus} bônus agilidade`;
+            if (shopState.vipActive) msg += ` (VIP 1.5x! 👑)`;
             showMessage(msg, 4000);
             deliveredOrders.forEach(o => o.state = 'done');
         }

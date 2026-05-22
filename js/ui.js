@@ -9,6 +9,7 @@ const dom = {};
 
 export function initUI() {
     dom.hudMoney = document.getElementById('hud-money');
+    dom.hudGems = document.getElementById('hud-gems-val');
     dom.hudScore = document.getElementById('hud-score');
     dom.hudSatisfaction = document.getElementById('hud-satisfaction');
     dom.hudTime = document.getElementById('hud-time');
@@ -93,6 +94,9 @@ export function updateHUD(state) {
     }
 
     dom.hudMoney.textContent = `R$ ${state.money}`;
+    if (dom.hudGems) {
+        dom.hudGems.textContent = state.gems !== undefined ? state.gems : 0;
+    }
     dom.hudScore.textContent = state.score;
     dom.hudSatisfaction.style.width = `${Math.max(0, Math.min(100, state.satisfaction))}%`;
 
