@@ -2,13 +2,13 @@
 // main.js — Entry Point, Game Loop, Events
 // ==========================================
 import * as THREE from 'three';
-import { initScene, createRestaurant } from './scene.js';
-import { Game, shopState, saveProgress, getShopPrices, loadProgress } from './gameplay.js';
+import { initScene, createRestaurant } from './scene.js?v=8';
+import { Game, shopState, saveProgress, getShopPrices, loadProgress } from './gameplay.js?v=8';
 import {
     initUI, initParticles, animateParticles,
     showScreen, hideLevelComplete, hideGameOver,
     showPause, hidePause, showMessage, showSimulatedAd
-} from './ui.js';
+} from './ui.js?v=8';
 
 // ---------- STATE ----------
 let sceneData = null;
