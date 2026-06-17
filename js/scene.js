@@ -68,6 +68,13 @@ const materials = {
     floor2: new THREE.MeshStandardMaterial({ color: 0xFFDFBF, roughness: 0.9 }),
     wall: new THREE.MeshStandardMaterial({ color: 0xFFFAEB, roughness: 0.8 }),
     wallTrim: new THREE.MeshStandardMaterial({ color: 0xFFCBA4, roughness: 0.7 }),
+    wallLambri: new THREE.MeshStandardMaterial({ color: 0xEDD5B0, roughness: 0.75 }),  // Wood panel lambri
+    wallLambriDark: new THREE.MeshStandardMaterial({ color: 0xD4A96A, roughness: 0.8 }),  // Dark lambri slat
+    tileStripe: new THREE.MeshStandardMaterial({ color: 0xF0E8D5, roughness: 0.5 }),  // Tile accent
+    tileStripeDark: new THREE.MeshStandardMaterial({ color: 0xDFCCAA, roughness: 0.5 }),
+    ceilingBeam: new THREE.MeshStandardMaterial({ color: 0xC49A6C, roughness: 0.8 }),  // Ceiling beam wood
+    carpet: new THREE.MeshStandardMaterial({ color: 0xF4C5A0, roughness: 1.0 }),  // Warm salmon carpet
+    carpetBorder: new THREE.MeshStandardMaterial({ color: 0xE8956D, roughness: 1.0 }),
     ceiling: new THREE.MeshStandardMaterial({ color: 0xFFEBD6, roughness: 1.0 }),
     tableWood: new THREE.MeshStandardMaterial({ color: 0xE2C2A4, roughness: 0.6 }),
     tableWhite: new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.5 }),
@@ -81,17 +88,27 @@ const materials = {
     painting: new THREE.MeshStandardMaterial({ color: 0x8FBC8F, roughness: 0.6 }),
     paintingFrame: new THREE.MeshStandardMaterial({ color: 0xCD853F, roughness: 0.5 }),
     doorIndicator: new THREE.MeshStandardMaterial({ color: 0x98FB98, emissive: 0x90EE90, emissiveIntensity: 0.6, roughness: 0.4 }),
+    // Kitchen extra
+    backsplashTile: new THREE.MeshStandardMaterial({ color: 0xFFF8F0, roughness: 0.3, metalness: 0.05 }),  // Shiny white tile
+    backsplashGrout: new THREE.MeshStandardMaterial({ color: 0xE0D4C0, roughness: 0.9 }),
+    ironGrate: new THREE.MeshStandardMaterial({ color: 0x4A4040, roughness: 0.7, metalness: 0.4 }),
+    potMetal: new THREE.MeshStandardMaterial({ color: 0xC0A060, roughness: 0.4, metalness: 0.6 }),
+    herbGreen: new THREE.MeshStandardMaterial({ color: 0x5DA45D, roughness: 0.9 }),
     // Bar materials (milk bar / treat counter)
     barWood: new THREE.MeshStandardMaterial({ color: 0xE8B890, roughness: 0.6 }),
     barTop: new THREE.MeshStandardMaterial({ color: 0xFFFAF0, roughness: 0.2 }),
     barShelf: new THREE.MeshStandardMaterial({ color: 0xCDA585, roughness: 0.5 }),
     barMetal: new THREE.MeshStandardMaterial({ color: 0xDEB887, roughness: 0.4, metalness: 0.2 }),
     barNeon: new THREE.MeshStandardMaterial({ color: 0xFFB6C1, emissive: 0xFFC0CB, emissiveIntensity: 0.8, roughness: 0.4 }),
+    barNeonBlue: new THREE.MeshStandardMaterial({ color: 0xADD8FF, emissive: 0x88CCFF, emissiveIntensity: 1.0, roughness: 0.3 }),
+    barPanel: new THREE.MeshStandardMaterial({ color: 0x7FD9A0, roughness: 0.7 }),  // Mint panel for bar front
     bottleGreen: new THREE.MeshStandardMaterial({ color: 0xA8E6CF, roughness: 0.2, transparent: true, opacity: 0.9 }),
     bottleAmber: new THREE.MeshStandardMaterial({ color: 0xFFD3B6, roughness: 0.2, transparent: true, opacity: 0.9 }),
     bottleClear: new THREE.MeshStandardMaterial({ color: 0xFDFD96, roughness: 0.1, transparent: true, opacity: 0.8 }),
+    bottlePink: new THREE.MeshStandardMaterial({ color: 0xFFB0C0, roughness: 0.15, transparent: true, opacity: 0.9 }),
     glassBody: new THREE.MeshStandardMaterial({ color: 0xF0F8FF, roughness: 0.1, transparent: true, opacity: 0.6 }),
     drinkLiquid: new THREE.MeshStandardMaterial({ color: 0xFFF5EE, roughness: 0.3, transparent: true, opacity: 0.95 }),
+    juiceBox: new THREE.MeshStandardMaterial({ color: 0xFFE44A, roughness: 0.6 }),  // Yellow juice carton
     // Cat fur materials
     catBlack: new THREE.MeshStandardMaterial({ color: 0x3D3A3B, roughness: 0.95 }),
     catWhite: new THREE.MeshStandardMaterial({ color: 0xFFFAFA, roughness: 0.95 }),
@@ -122,6 +139,51 @@ export function createRestaurant(scn) {
         }
     }
     restaurant.add(floorGroup);
+
+    // --- FLOOR BORDER (tile accent strip around room edge) ---
+    const borderMat = new THREE.MeshStandardMaterial({ color: 0xD4A96A, roughness: 0.5 });
+    const borderW = 0.5;
+    // North/South borders
+    for (const bz of [-halfRoom + borderW / 2, halfRoom - borderW / 2]) {
+        const seg = new THREE.Mesh(new THREE.BoxGeometry(roomSize, 0.06, borderW), borderMat);
+        seg.position.set(0, -0.02, bz);
+        seg.receiveShadow = true;
+        restaurant.add(seg);
+    }
+    // East/West borders
+    for (const bx of [-halfRoom + borderW / 2, halfRoom - borderW / 2]) {
+        const seg = new THREE.Mesh(new THREE.BoxGeometry(borderW, 0.06, roomSize - borderW * 2), borderMat);
+        seg.position.set(bx, -0.02, 0);
+        seg.receiveShadow = true;
+        restaurant.add(seg);
+    }
+
+    // --- CENTRAL AREA CARPET ---
+    const carpetGroup = new THREE.Group();
+    carpetGroup.position.set(-1, 0.0, 0.5);
+    // Outer border
+    const carpetOuter = new THREE.Mesh(
+        new THREE.BoxGeometry(8.4, 0.04, 6.4),
+        materials.carpetBorder
+    );
+    carpetOuter.receiveShadow = true;
+    carpetGroup.add(carpetOuter);
+    // Inner fill
+    const carpetInner = new THREE.Mesh(
+        new THREE.BoxGeometry(7.6, 0.045, 5.6),
+        materials.carpet
+    );
+    carpetInner.receiveShadow = true;
+    carpetGroup.add(carpetInner);
+    // Decorative diamond pattern (4 small diamond shapes)
+    const diamondMat = materials.carpetBorder;
+    for (let di = 0; di < 3; di++) {
+        const diamond = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.05, 0.6), diamondMat);
+        diamond.rotation.y = Math.PI / 4;
+        diamond.position.set(-2.4 + di * 2.4, 0.0, 0);
+        carpetGroup.add(diamond);
+    }
+    restaurant.add(carpetGroup);
 
     // --- WALLS ---
     const wallH = 7, wallT = 0.3;
@@ -160,7 +222,84 @@ export function createRestaurant(scn) {
         restaurant.add(seg2);
     }
 
-    // Door frame
+    // --- BACK WALL LAMBRI (vertical wood paneling, lower 2m) ---
+    const lambriH = 2.0, lambriSlats = 24;
+    const lambriSlW = roomSize / lambriSlats;
+    for (let i = 0; i < lambriSlats; i++) {
+        const isDark = i % 2 === 0;
+        const slat = new THREE.Mesh(
+            new THREE.BoxGeometry(lambriSlW - 0.02, lambriH, 0.06),
+            isDark ? materials.wallLambriDark : materials.wallLambri
+        );
+        slat.position.set(-halfRoom + lambriSlW * i + lambriSlW / 2, lambriH / 2, -halfRoom + 0.18);
+        restaurant.add(slat);
+    }
+    // Lambri cap rail
+    const lambriCap = new THREE.Mesh(
+        new THREE.BoxGeometry(roomSize, 0.08, 0.1),
+        materials.wallLambriDark
+    );
+    lambriCap.position.set(0, lambriH + 0.04, -halfRoom + 0.2);
+    restaurant.add(lambriCap);
+
+    // Right wall lambri (partial)
+    const lambriSlatR = roomSize / lambriSlats;
+    for (let i = 0; i < lambriSlats; i++) {
+        const isDark = i % 2 === 0;
+        const slat = new THREE.Mesh(
+            new THREE.BoxGeometry(0.06, lambriH, lambriSlatR - 0.02),
+            isDark ? materials.wallLambriDark : materials.wallLambri
+        );
+        slat.position.set(halfRoom - 0.18, lambriH / 2, -halfRoom + lambriSlatR * i + lambriSlatR / 2);
+        restaurant.add(slat);
+    }
+    const lambriCapR = new THREE.Mesh(
+        new THREE.BoxGeometry(0.1, 0.08, roomSize),
+        materials.wallLambriDark
+    );
+    lambriCapR.position.set(halfRoom - 0.2, lambriH + 0.04, 0);
+    restaurant.add(lambriCapR);
+
+    // --- TILE ACCENT STRIPE (between lambri and upper wall) ---
+    const tileStripeH = 0.4;
+    const tStripeBack = new THREE.Mesh(
+        new THREE.BoxGeometry(roomSize, tileStripeH, 0.08),
+        materials.tileStripe
+    );
+    tStripeBack.position.set(0, lambriH + tileStripeH / 2 + 0.08, -halfRoom + 0.22);
+    restaurant.add(tStripeBack);
+    // Small tile grout lines on stripe
+    for (let ti = 0; ti < 9; ti++) {
+        const grout = new THREE.Mesh(new THREE.BoxGeometry(0.03, tileStripeH, 0.09), materials.tileStripeDark);
+        grout.position.set(-halfRoom + 2 + ti * 2, lambriH + tileStripeH / 2 + 0.08, -halfRoom + 0.21);
+        restaurant.add(grout);
+    }
+
+    // Right wall tile stripe
+    const tStripeRight = new THREE.Mesh(
+        new THREE.BoxGeometry(0.08, tileStripeH, roomSize),
+        materials.tileStripe
+    );
+    tStripeRight.position.set(halfRoom - 0.22, lambriH + tileStripeH / 2 + 0.08, 0);
+    restaurant.add(tStripeRight);
+
+    // --- CEILING BEAMS (decorative horizontal beams) ---
+    const beamGeo = new THREE.BoxGeometry(0.25, 0.3, roomSize);
+    const beamPositions = [-5, 0, 5];
+    beamPositions.forEach(bx => {
+        const beam = new THREE.Mesh(beamGeo, materials.ceilingBeam);
+        beam.position.set(bx, wallH - 0.15, 0);
+        restaurant.add(beam);
+    });
+    // Perpendicular beams
+    const beamGeoP = new THREE.BoxGeometry(roomSize, 0.3, 0.25);
+    [-5, 0, 5].forEach(bz => {
+        const beam = new THREE.Mesh(beamGeoP, materials.ceilingBeam);
+        beam.position.set(0, wallH - 0.15, bz);
+        restaurant.add(beam);
+    });
+
+    // --- DOOR FRAME (improved) ---
     const frameTh = 0.25;
     // Top frame
     const doorTopFrame = new THREE.Mesh(new THREE.BoxGeometry(frameTh + 0.2, frameTh, doorWidth + frameTh * 2), materials.doorFrame);
@@ -172,20 +311,75 @@ export function createRestaurant(scn) {
         sf.position.set(-halfRoom + 0.05, doorHeight / 2, doorZ + side * (doorWidth / 2 + frameTh / 2));
         restaurant.add(sf);
     }
+    // Arched decorative trim above door
+    const archMat = materials.doorFrame;
+    for (let ai = 0; ai < 5; ai++) {
+        const angle = (ai / 4) * Math.PI;
+        const ax = Math.cos(angle) * (doorWidth / 2 - 0.15);
+        const ay = Math.sin(angle) * 0.55;
+        const archPiece = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.22), archMat);
+        archPiece.position.set(-halfRoom + 0.05, doorHeight + 0.12 + ay, doorZ + ax);
+        restaurant.add(archPiece);
+    }
+
+    // --- LANTERN ABOVE DOOR ---
+    const lantern = createLantern();
+    lantern.position.set(-halfRoom + 0.6, doorHeight + 1.0, doorZ);
+    restaurant.add(lantern);
+    const lanternLight = new THREE.PointLight(0xFFAA44, 0.8, 5);
+    lanternLight.position.set(-halfRoom + 0.6, doorHeight + 0.5, doorZ);
+    restaurant.add(lanternLight);
 
     // Door indicator (green dot)
     const indicator = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), materials.doorIndicator);
     indicator.position.set(-halfRoom + 0.3, doorHeight + 0.5, doorZ);
     restaurant.add(indicator);
 
-    // Wall trim (baseboard)
-    const trimH = 0.3;
-    const trimBack = new THREE.Mesh(new THREE.BoxGeometry(roomSize, trimH, 0.05), materials.wallTrim);
-    trimBack.position.set(0, trimH / 2, -halfRoom + 0.2);
+    // --- DOUBLE BASEBOARD (tall baseboard + thin upper cap) ---
+    const trimH = 0.35;
+    // Lower baseboard (thick, painted)
+    const trimBack = new THREE.Mesh(new THREE.BoxGeometry(roomSize, trimH, 0.07), materials.wallTrim);
+    trimBack.position.set(0, trimH / 2, -halfRoom + 0.22);
     restaurant.add(trimBack);
-    const trimRight = new THREE.Mesh(new THREE.BoxGeometry(0.05, trimH, roomSize), materials.wallTrim);
-    trimRight.position.set(halfRoom - 0.2, trimH / 2, 0);
+    const trimRight = new THREE.Mesh(new THREE.BoxGeometry(0.07, trimH, roomSize), materials.wallTrim);
+    trimRight.position.set(halfRoom - 0.22, trimH / 2, 0);
     restaurant.add(trimRight);
+    const trimLeft = new THREE.Mesh(new THREE.BoxGeometry(0.07, trimH, roomSize), materials.wallTrim);
+    trimLeft.position.set(-halfRoom + 0.22, trimH / 2, 0);
+    restaurant.add(trimLeft);
+    // Upper cap (thin)
+    const capH = 0.1;
+    const capBack = new THREE.Mesh(new THREE.BoxGeometry(roomSize, capH, 0.1), materials.wallLambriDark);
+    capBack.position.set(0, trimH + capH / 2, -halfRoom + 0.23);
+    restaurant.add(capBack);
+    const capRight = new THREE.Mesh(new THREE.BoxGeometry(0.1, capH, roomSize), materials.wallLambriDark);
+    capRight.position.set(halfRoom - 0.23, trimH + capH / 2, 0);
+    restaurant.add(capRight);
+    const capLeft = new THREE.Mesh(new THREE.BoxGeometry(0.1, capH, roomSize), materials.wallLambriDark);
+    capLeft.position.set(-halfRoom + 0.23, trimH + capH / 2, 0);
+    restaurant.add(capLeft);
+
+    // --- WALL PLANT SHELVES (corner decoration) ---
+    const plantShelf1 = createWallPlantShelf();
+    plantShelf1.position.set(halfRoom - 0.25, 3.0, -halfRoom + 1.5);
+    plantShelf1.rotation.y = -Math.PI / 2;
+    restaurant.add(plantShelf1);
+
+    const plantShelf2 = createWallPlantShelf();
+    plantShelf2.position.set(halfRoom - 0.25, 3.0, halfRoom - 1.5);
+    plantShelf2.rotation.y = -Math.PI / 2;
+    restaurant.add(plantShelf2);
+
+    // --- TWO CENTRAL CHANDELIERS ---
+    const chandelierPositions = [{ x: -2, z: -2 }, { x: 3, z: 4 }];
+    chandelierPositions.forEach(cp => {
+        const chandelier = createChandelier();
+        chandelier.position.set(cp.x, wallH - 0.5, cp.z);
+        restaurant.add(chandelier);
+        const cLight = new THREE.PointLight(0xFFCC88, 1.2, 12);
+        cLight.position.set(cp.x, wallH - 2.5, cp.z);
+        restaurant.add(cLight);
+    });
 
     // --- NO CEILING (removed for top-down visibility) ---
 
@@ -291,32 +485,86 @@ export function createRestaurant(scn) {
         restaurant.add(light);
     });
 
-    // --- KITCHEN (Cute Cats & Soup Style) ---
+    // --- KITCHEN (Detailed Cats & Soup Style) ---
     const kitchenGroup = new THREE.Group();
     kitchenGroup.userData = { type: 'kitchen' };
-    const kz = -halfRoom + 1.6; // Moved forward to completely avoid wall clipping (z-fighting)
+    const kz = -halfRoom + 1.6;
 
-    // Cute pastel counter body
-    const counterGeo = new THREE.BoxGeometry(6, 1.6, 1.6);
-    const counterBody = new THREE.Mesh(counterGeo, new THREE.MeshStandardMaterial({ color: 0xFFE0E0, roughness: 0.8 })); // Pastel pink
+    // Pastel pink counter body with front panel detail
+    const counterBody = new THREE.Mesh(
+        new THREE.BoxGeometry(6, 1.6, 1.6),
+        new THREE.MeshStandardMaterial({ color: 0xFFE0E0, roughness: 0.8 })
+    );
     counterBody.position.set(2, 0.8, kz);
     counterBody.castShadow = true;
     kitchenGroup.add(counterBody);
 
+    // Counter front panel detail (vertical ribs)
+    for (let pi = 0; pi < 7; pi++) {
+        const rib = new THREE.Mesh(
+            new THREE.BoxGeometry(0.06, 1.5, 0.06),
+            new THREE.MeshStandardMaterial({ color: 0xFFCCCC, roughness: 0.7 })
+        );
+        rib.position.set(-1.3 + pi * 0.9, 0.8, kz + 0.82);
+        kitchenGroup.add(rib);
+    }
+
     // Light wooden top
-    const counterTopMesh = new THREE.Mesh(new THREE.BoxGeometry(6.2, 0.15, 1.8), new THREE.MeshStandardMaterial({ color: 0xF5DEB3, roughness: 0.7 })); // Wheat/wood
+    const counterTopMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(6.2, 0.15, 1.8),
+        new THREE.MeshStandardMaterial({ color: 0xF5DEB3, roughness: 0.7 })
+    );
     counterTopMesh.position.set(2, 1.675, kz);
     kitchenGroup.add(counterTopMesh);
 
-    // Cute striped awning/canopy above the kitchen
-    for(let i = 0; i < 8; i++) {
+    // Edge lip on countertop (raised border)
+    const lipGeo = new THREE.BoxGeometry(6.2, 0.06, 0.06);
+    const lipMat = new THREE.MeshStandardMaterial({ color: 0xE0C49A, roughness: 0.6 });
+    for (const lz of [kz - 0.87, kz + 0.87]) {
+        const lip = new THREE.Mesh(lipGeo, lipMat);
+        lip.position.set(2, 1.77, lz);
+        kitchenGroup.add(lip);
+    }
+
+    // --- BACKSPLASH TILES (behind oven area) ---
+    const bsW = 4.0, bsH = 2.0;
+    const bsBase = new THREE.Mesh(
+        new THREE.BoxGeometry(bsW, bsH, 0.06),
+        materials.backsplashTile
+    );
+    bsBase.position.set(2, 2.8, kz - 0.79);
+    kitchenGroup.add(bsBase);
+    // Grout grid lines on backsplash
+    const groutMat = materials.backsplashGrout;
+    const tW = 0.4, tH = 0.3;
+    for (let gx = 0; gx <= Math.ceil(bsW / tW); gx++) {
+        const gLine = new THREE.Mesh(new THREE.BoxGeometry(0.02, bsH, 0.07), groutMat);
+        gLine.position.set(2 - bsW / 2 + gx * tW, 2.8, kz - 0.79);
+        kitchenGroup.add(gLine);
+    }
+    for (let gy = 0; gy <= Math.ceil(bsH / tH); gy++) {
+        const gLine = new THREE.Mesh(new THREE.BoxGeometry(bsW, 0.02, 0.07), groutMat);
+        gLine.position.set(2, 1.8 + gy * tH, kz - 0.79);
+        kitchenGroup.add(gLine);
+    }
+
+    // Cute striped awning/canopy
+    const awningGroup = new THREE.Group();
+    for (let i = 0; i < 8; i++) {
         const stripeMat = new THREE.MeshStandardMaterial({ color: i % 2 === 0 ? 0xFF9E9E : 0xFFFFFF, roughness: 0.9 });
         const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.1, 2.8), stripeMat);
         stripe.position.set(-0.8 + i * 0.8, 4.5, kz - 0.2);
-        stripe.rotation.x = Math.PI / 8; // Tilted downward
+        stripe.rotation.x = Math.PI / 8;
         kitchenGroup.add(stripe);
+        // Awning fringe
+        const fringe = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.04, 0.01, 0.25, 5),
+            new THREE.MeshStandardMaterial({ color: i % 2 === 0 ? 0xFF7777 : 0xEEEEEE, roughness: 0.9 })
+        );
+        fringe.position.set(-0.8 + i * 0.8, 3.8, kz - 1.3);
+        kitchenGroup.add(fringe);
     }
-    
+
     // Awning wooden supports
     const supportMat = new THREE.MeshStandardMaterial({ color: 0x8E6A45, roughness: 0.8 });
     for (const sx of [-1.1, 5.1]) {
@@ -325,42 +573,196 @@ export function createRestaurant(scn) {
         kitchenGroup.add(support);
     }
 
-    // A cute brick oven in the back
-    const ovenGeo = new THREE.BoxGeometry(2.4, 2.2, 1.2);
-    const ovenMat = new THREE.MeshStandardMaterial({ color: 0xD98D71, roughness: 0.9 }); // Terracotta
-    const oven = new THREE.Mesh(ovenGeo, ovenMat);
-    oven.position.set(2, 1.1, kz - 0.3); // Sits on back half
+    // --- BRICK OVEN (detailed) ---
+    const ovenMat = new THREE.MeshStandardMaterial({ color: 0xD98D71, roughness: 0.9 });
+    const oven = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.2, 1.2), ovenMat);
+    oven.position.set(2, 1.1, kz - 0.3);
     kitchenGroup.add(oven);
-    
+    // Brick lines on oven
+    const brickMat = new THREE.MeshStandardMaterial({ color: 0xB97050, roughness: 1.0 });
+    for (let br = 0; br < 6; br++) {
+        const brickLine = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.04, 1.22), brickMat);
+        brickLine.position.set(2, 0.25 + br * 0.35, kz - 0.3);
+        kitchenGroup.add(brickLine);
+    }
+    // Chimney
+    const chimney = new THREE.Mesh(
+        new THREE.BoxGeometry(0.4, 0.8, 0.4),
+        ovenMat
+    );
+    chimney.position.set(2, 2.6, kz - 0.5);
+    kitchenGroup.add(chimney);
+    const chimneyTop = new THREE.Mesh(
+        new THREE.BoxGeometry(0.5, 0.1, 0.5),
+        brickMat
+    );
+    chimneyTop.position.set(2, 3.05, kz - 0.5);
+    kitchenGroup.add(chimneyTop);
+
     // Oven arch (mouth)
     const mouthGeo = new THREE.CylinderGeometry(0.6, 0.6, 1.25, 16, 1, false, 0, Math.PI);
-    const mouthMat = new THREE.MeshStandardMaterial({ color: 0x221111, roughness: 1.0 }); // Dark inside
+    const mouthMat = new THREE.MeshStandardMaterial({ color: 0x221111, roughness: 1.0 });
     const mouth = new THREE.Mesh(mouthGeo, mouthMat);
     mouth.rotation.x = Math.PI / 2;
-    mouth.position.set(2, 1.8, kz + 0.3); // Front of oven
+    mouth.position.set(2, 1.8, kz + 0.3);
     kitchenGroup.add(mouth);
+    // Iron grate over oven mouth
+    for (let gr = 0; gr < 4; gr++) {
+        const gbar = new THREE.Mesh(
+            new THREE.BoxGeometry(1.18, 0.04, 0.04),
+            materials.ironGrate
+        );
+        gbar.position.set(2, 1.35 + gr * 0.22, kz + 0.3);
+        kitchenGroup.add(gbar);
+    }
+    for (let gc = 0; gc < 5; gc++) {
+        const gcol = new THREE.Mesh(
+            new THREE.BoxGeometry(0.04, 0.85, 0.04),
+            materials.ironGrate
+        );
+        gcol.position.set(1.42 + gc * 0.3, 1.55, kz + 0.31);
+        kitchenGroup.add(gcol);
+    }
 
     // Fire glow inside oven
     const fireLight = new THREE.PointLight(0xFF7700, 1.5, 6);
     fireLight.position.set(2, 1.7, kz);
     kitchenGroup.add(fireLight);
 
+    // --- POT ON COUNTER ---
+    const potBody = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.22, 0.18, 0.32, 12),
+        materials.potMetal
+    );
+    potBody.position.set(1.0, 1.84, kz + 0.35);
+    kitchenGroup.add(potBody);
+    // Pot lid
+    const potLid = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.24, 0.24, 0.06, 12),
+        materials.potMetal
+    );
+    potLid.position.set(1.0, 2.01, kz + 0.35);
+    kitchenGroup.add(potLid);
+    const lidKnob = new THREE.Mesh(
+        new THREE.SphereGeometry(0.04, 8, 8),
+        new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5 })
+    );
+    lidKnob.position.set(1.0, 2.065, kz + 0.35);
+    kitchenGroup.add(lidKnob);
+    // Pot handles
+    for (const hs of [-1, 1]) {
+        const handle = new THREE.Mesh(
+            new THREE.TorusGeometry(0.06, 0.015, 6, 12, Math.PI),
+            materials.ironGrate
+        );
+        handle.rotation.z = Math.PI / 2;
+        handle.position.set(1.0 + hs * 0.26, 1.92, kz + 0.35);
+        kitchenGroup.add(handle);
+    }
+
+    // --- HERB SHELF (suspended above counter) ---
+    const herbShelf = new THREE.Mesh(
+        new THREE.BoxGeometry(4.0, 0.06, 0.5),
+        new THREE.MeshStandardMaterial({ color: 0xC19A6B, roughness: 0.8 })
+    );
+    herbShelf.position.set(2, 3.4, kz - 0.25);
+    kitchenGroup.add(herbShelf);
+    // Shelf brackets
+    for (const bx of [-1.7, 1.7]) {
+        const bracket = new THREE.Mesh(
+            new THREE.BoxGeometry(0.05, 0.4, 0.5),
+            new THREE.MeshStandardMaterial({ color: 0x8E6A45, roughness: 0.8 })
+        );
+        bracket.position.set(2 + bx, 3.2, kz - 0.25);
+        kitchenGroup.add(bracket);
+    }
+    // Mini pots with herbs on shelf
+    const herbColors = [0x4CAF50, 0x81C784, 0x66BB6A, 0xA5D6A7];
+    for (let hi = 0; hi < 4; hi++) {
+        const hPot = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.07, 0.055, 0.12, 8),
+            new THREE.MeshStandardMaterial({ color: 0xD98D71, roughness: 0.9 })
+        );
+        hPot.position.set(0.5 + hi * 1.0, 3.49, kz - 0.2);
+        kitchenGroup.add(hPot);
+        const herb = new THREE.Mesh(
+            new THREE.SphereGeometry(0.08, 8, 8),
+            new THREE.MeshStandardMaterial({ color: herbColors[hi], roughness: 0.9 })
+        );
+        herb.scale.set(1, 0.8, 1);
+        herb.position.set(0.5 + hi * 1.0, 3.63, kz - 0.2);
+        kitchenGroup.add(herb);
+    }
+    // Hanging dried herbs (bundles from ceiling)
+    for (let bh = 0; bh < 3; bh++) {
+        const stem = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.01, 0.01, 0.3, 5),
+            new THREE.MeshStandardMaterial({ color: 0x8E6A45 })
+        );
+        stem.position.set(0.8 + bh * 1.5, 4.2, kz - 0.5);
+        kitchenGroup.add(stem);
+        const bundle = new THREE.Mesh(
+            new THREE.SphereGeometry(0.09, 6, 6),
+            new THREE.MeshStandardMaterial({ color: herbColors[bh], roughness: 1.0 })
+        );
+        bundle.scale.set(1.4, 0.7, 1);
+        bundle.position.set(0.8 + bh * 1.5, 4.05, kz - 0.5);
+        kitchenGroup.add(bundle);
+    }
+
     // Wooden cutting board and fish prop
-    const board = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.05, 0.8), new THREE.MeshStandardMaterial({ color: 0xC19A6B }));
+    const board = new THREE.Mesh(
+        new THREE.BoxGeometry(1.2, 0.05, 0.8),
+        new THREE.MeshStandardMaterial({ color: 0xC19A6B })
+    );
     board.position.set(4, 1.76, kz + 0.3);
     kitchenGroup.add(board);
-    
-    const fishProp = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.5, 8), new THREE.MeshStandardMaterial({ color: 0x87CEEB })); // Light blue fish
+    // Handle of board
+    const boardHandle = new THREE.Mesh(
+        new THREE.BoxGeometry(0.2, 0.05, 0.25),
+        new THREE.MeshStandardMaterial({ color: 0xB08060 })
+    );
+    boardHandle.position.set(4.7, 1.76, kz + 0.3);
+    kitchenGroup.add(boardHandle);
+    const fishProp = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.1, 0.1, 0.5, 8),
+        new THREE.MeshStandardMaterial({ color: 0x87CEEB })
+    );
     fishProp.rotation.z = Math.PI / 2;
     fishProp.position.set(4, 1.82, kz + 0.3);
     kitchenGroup.add(fishProp);
+    // Fish tail fin
+    const fishTail = new THREE.Mesh(
+        new THREE.ConeGeometry(0.1, 0.2, 4),
+        new THREE.MeshStandardMaterial({ color: 0x6AB4D8 })
+    );
+    fishTail.rotation.z = -Math.PI / 2;
+    fishTail.position.set(4.35, 1.82, kz + 0.3);
+    kitchenGroup.add(fishTail);
+    // Fish eye
+    const fishEye = new THREE.Mesh(
+        new THREE.SphereGeometry(0.025, 6, 6),
+        new THREE.MeshStandardMaterial({ color: 0x111111 })
+    );
+    fishEye.position.set(3.72, 1.86, kz + 0.24);
+    kitchenGroup.add(fishEye);
 
     // Serving plates area (3 cute round plate spots on shelf)
     for (let i = 0; i < 3; i++) {
-        const plateSpot = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.04, 16),
-            new THREE.MeshStandardMaterial({ color: 0xFFFAFA, roughness: 0.4 }));
+        const plateSpot = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.28, 0.28, 0.04, 16),
+            new THREE.MeshStandardMaterial({ color: 0xFFFAFA, roughness: 0.4 })
+        );
         plateSpot.position.set(0.0 + i * 0.9, 1.77, kz + 0.4);
         kitchenGroup.add(plateSpot);
+        // Decorative blue ring on plate
+        const ring = new THREE.Mesh(
+            new THREE.TorusGeometry(0.24, 0.015, 6, 18),
+            new THREE.MeshStandardMaterial({ color: 0x87CEEB })
+        );
+        ring.rotation.x = Math.PI / 2;
+        ring.position.set(0.0 + i * 0.9, 1.8, kz + 0.4);
+        kitchenGroup.add(ring);
     }
 
     // Stack of plates on counter
@@ -392,37 +794,76 @@ export function createRestaurant(scn) {
 
     const kitchenData = {
         group: kitchenGroup,
-        position: new THREE.Vector3(2, 0, kz + 1.4), // Waiter approach point
+        position: new THREE.Vector3(2, 0, kz + 1.4),
         readyLight,
         readyBulb,
         readyOrders: [],
-    };    // --- MILK & JUICE BAR (Cute Cats & Soup Style) ---
+    };    // --- MILK & JUICE BAR (Detailed Cats & Soup Style) ---
     const barGroup = new THREE.Group();
     barGroup.userData = { type: 'bar' };
-    const barX = halfRoom - 1.5; // Moved inward to strictly avoid wall clipping
+    const barX = halfRoom - 1.5;
     const barZStart = -1.5;
     const barLength = 5.5;
 
-    // Cute mint-green bar counter
-    const barBody = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.5, barLength), new THREE.MeshStandardMaterial({ color: 0x98FF98, roughness: 0.8 })); // Mint green
+    // Mint-green bar counter with front panel ribs
+    const barBody = new THREE.Mesh(
+        new THREE.BoxGeometry(1.6, 1.5, barLength),
+        new THREE.MeshStandardMaterial({ color: 0x98FF98, roughness: 0.8 })
+    );
     barBody.position.set(barX, 0.75, barZStart + barLength / 2);
     barBody.castShadow = true;
     barGroup.add(barBody);
+    // Front panel ribs
+    for (let pri = 0; pri < 8; pri++) {
+        const rib = new THREE.Mesh(
+            new THREE.BoxGeometry(0.06, 1.4, 0.06),
+            materials.barPanel
+        );
+        rib.position.set(barX - 0.77, 0.75, barZStart + 0.35 + pri * 0.68);
+        barGroup.add(rib);
+    }
 
-    // Light wooden top
-    const barTopMesh = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.15, barLength + 0.2), new THREE.MeshStandardMaterial({ color: 0xF5DEB3, roughness: 0.7 }));
+    // Marble-look bar top
+    const barTopMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(1.8, 0.15, barLength + 0.2),
+        new THREE.MeshStandardMaterial({ color: 0xF5F5F5, roughness: 0.15, metalness: 0.05 })
+    );
     barTopMesh.position.set(barX - 0.1, 1.575, barZStart + barLength / 2);
     barGroup.add(barTopMesh);
+    // Marble veins (thin dark lines)
+    for (let mv = 0; mv < 3; mv++) {
+        const vein = new THREE.Mesh(
+            new THREE.BoxGeometry(0.02, 0.16, barLength * 0.6),
+            new THREE.MeshStandardMaterial({ color: 0xCCCCCC, roughness: 0.3 })
+        );
+        vein.rotation.y = (mv - 1) * 0.3;
+        vein.position.set(barX - 0.05, 1.575, barZStart + barLength / 2);
+        barGroup.add(vein);
+    }
+    // Top edge friso
+    const topEdge = new THREE.Mesh(
+        new THREE.BoxGeometry(1.85, 0.08, barLength + 0.25),
+        new THREE.MeshStandardMaterial({ color: 0xE8DDD0, roughness: 0.4 })
+    );
+    topEdge.position.set(barX - 0.1, 1.62, barZStart + barLength / 2);
+    barGroup.add(topEdge);
 
-    // Cute canopy (Yellow and White stripes)
-    for(let i = 0; i < 7; i++) {
+    // Yellow & White canopy
+    for (let i = 0; i < 7; i++) {
         const stripeMat = new THREE.MeshStandardMaterial({ color: i % 2 === 0 ? 0xFFE066 : 0xFFFFFF, roughness: 0.9 });
         const stripe = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.1, 0.8), stripeMat);
         stripe.position.set(barX - 0.5, 4.5, barZStart + 0.35 + i * 0.8);
-        stripe.rotation.z = Math.PI / 8; // Tilted toward center of room
+        stripe.rotation.z = Math.PI / 8;
         barGroup.add(stripe);
+        // Fringe
+        const fringe = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.04, 0.01, 0.2, 5),
+            new THREE.MeshStandardMaterial({ color: i % 2 === 0 ? 0xFFCC00 : 0xEEEEEE, roughness: 0.9 })
+        );
+        fringe.position.set(barX - 1.4, 3.85, barZStart + 0.35 + i * 0.8);
+        barGroup.add(fringe);
     }
-    
+
     // Canopy wooden supports
     for (const sz of [barZStart + 0.2, barZStart + barLength - 0.2]) {
         const support = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 3.2, 8), supportMat);
@@ -430,37 +871,153 @@ export function createRestaurant(scn) {
         barGroup.add(support);
     }
 
-    // A cute pink blender on the counter
-    const blenderBase = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 0.3, 12), new THREE.MeshStandardMaterial({ color: 0xFFB6C1 })); 
+    // --- NEON SIGN (cat face) ---
+    const neonSign = createNeonSign();
+    neonSign.position.set(barX + 0.55, 5.2, barZStart + barLength / 2);
+    neonSign.rotation.y = -Math.PI / 2;
+    barGroup.add(neonSign);
+    const neonLight = new THREE.PointLight(0xFF88BB, 0.6, 4);
+    neonLight.position.set(barX + 0.5, 5.0, barZStart + barLength / 2);
+    barGroup.add(neonLight);
+
+    // --- DETAILED BLENDER ---
+    const blenderBase = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.22, 0.25, 0.3, 12),
+        new THREE.MeshStandardMaterial({ color: 0xFFB6C1, roughness: 0.5 })
+    );
     blenderBase.position.set(barX + 0.2, 1.8, barZStart + 4);
     barGroup.add(blenderBase);
-    const blenderJug = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.15, 0.5, 12), new THREE.MeshStandardMaterial({ color: 0x87CEEB, transparent: true, opacity: 0.6 }));
+    // Blender buttons
+    const btnColors = [0xFF6B6B, 0xFFE66D, 0x95E1D3];
+    for (let btn = 0; btn < 3; btn++) {
+        const button = new THREE.Mesh(
+            new THREE.SphereGeometry(0.03, 6, 6),
+            new THREE.MeshStandardMaterial({ color: btnColors[btn], emissive: btnColors[btn], emissiveIntensity: 0.3 })
+        );
+        button.position.set(barX - 0.02, 1.8 + btn * 0.08 - 0.08, barZStart + 4 - 0.2);
+        barGroup.add(button);
+    }
+    const blenderJug = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.18, 0.15, 0.5, 12),
+        new THREE.MeshStandardMaterial({ color: 0x87CEEB, transparent: true, opacity: 0.6 })
+    );
     blenderJug.position.set(barX + 0.2, 2.2, barZStart + 4);
     barGroup.add(blenderJug);
-    
-    // Milk bottles
-    for(let i = 0; i < 3; i++) {
-        const milk = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.3, 12), new THREE.MeshStandardMaterial({ color: 0xFFFAFA, roughness: 0.2 }));
-        milk.position.set(barX + 0.3, 1.8, barZStart + 1 + i * 0.35);
+    // Juice liquid inside blender
+    const jugLiquid = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.14, 0.13, 0.35, 10),
+        new THREE.MeshStandardMaterial({ color: 0xFFB347, roughness: 0.3, transparent: true, opacity: 0.85 })
+    );
+    jugLiquid.position.set(barX + 0.2, 2.08, barZStart + 4);
+    barGroup.add(jugLiquid);
+    // Blender handle
+    const blenderHandle = new THREE.Mesh(
+        new THREE.BoxGeometry(0.06, 0.25, 0.06),
+        new THREE.MeshStandardMaterial({ color: 0xFF9AAE })
+    );
+    blenderHandle.position.set(barX + 0.01, 2.2, barZStart + 4 - 0.24);
+    barGroup.add(blenderHandle);
+
+    // --- DETAILED MILK BOTTLES ---
+    const bottleMats = [materials.bottleGreen, materials.bottleClear, materials.bottlePink];
+    for (let i = 0; i < 3; i++) {
+        // Body
+        const milk = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.09, 0.09, 0.3, 12),
+            bottleMats[i]
+        );
+        milk.position.set(barX + 0.3, 1.79, barZStart + 0.8 + i * 0.4);
         barGroup.add(milk);
-        const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.05, 8), new THREE.MeshStandardMaterial({ color: 0xFF0000 }));
-        cap.position.set(barX + 0.3, 1.97, barZStart + 1 + i * 0.35);
+        // Shoulder (narrowing)
+        const shoulder = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.055, 0.09, 0.1, 12),
+            bottleMats[i]
+        );
+        shoulder.position.set(barX + 0.3, 2.0, barZStart + 0.8 + i * 0.4);
+        barGroup.add(shoulder);
+        // Neck
+        const neck = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.04, 0.055, 0.12, 10),
+            bottleMats[i]
+        );
+        neck.position.set(barX + 0.3, 2.1, barZStart + 0.8 + i * 0.4);
+        barGroup.add(neck);
+        // Cap
+        const cap = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.045, 0.045, 0.04, 8),
+            new THREE.MeshStandardMaterial({ color: 0xFF5555 })
+        );
+        cap.position.set(barX + 0.3, 2.17, barZStart + 0.8 + i * 0.4);
         barGroup.add(cap);
     }
 
-    // Floating wooden shelves (moved away from back wall)
+    // --- JUICE BOXES ---
+    for (let jb = 0; jb < 2; jb++) {
+        const box = new THREE.Mesh(
+            new THREE.BoxGeometry(0.15, 0.22, 0.12),
+            materials.juiceBox
+        );
+        box.position.set(barX + 0.2, 1.76, barZStart + 2.0 + jb * 0.3);
+        barGroup.add(box);
+        // Straw
+        const straw = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.01, 0.01, 0.25, 5),
+            new THREE.MeshStandardMaterial({ color: 0xFF8888 })
+        );
+        straw.position.set(barX + 0.2 + 0.06, 1.93, barZStart + 2.0 + jb * 0.3);
+        straw.rotation.z = 0.3;
+        barGroup.add(straw);
+    }
+
+    // --- FLOATING SHELVES WITH UNDER-SHELF LIGHTING ---
     for (let tier = 0; tier < 2; tier++) {
         const shelfY = 2.4 + tier * 0.9;
-        const shelf = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.06, barLength - 1), new THREE.MeshStandardMaterial({ color: 0xD3B599 }));
-        shelf.position.set(barX + 0.4, shelfY, barZStart + barLength / 2); 
+        const shelf = new THREE.Mesh(
+            new THREE.BoxGeometry(0.45, 0.06, barLength - 1),
+            new THREE.MeshStandardMaterial({ color: 0xD3B599 })
+        );
+        shelf.position.set(barX + 0.4, shelfY, barZStart + barLength / 2);
         barGroup.add(shelf);
-        // Cute colorful cups on each shelf
+        // Shelf brackets
+        for (const bsz of [barZStart + 1.0, barZStart + barLength - 1.0]) {
+            const brk = new THREE.Mesh(
+                new THREE.BoxGeometry(0.04, 0.35, 0.04),
+                new THREE.MeshStandardMaterial({ color: 0xB09070 })
+            );
+            brk.position.set(barX + 0.65, shelfY - 0.15, bsz);
+            barGroup.add(brk);
+        }
+        // Under-shelf glow strip
+        const strip = new THREE.Mesh(
+            new THREE.BoxGeometry(0.04, 0.04, barLength - 1.1),
+            new THREE.MeshStandardMaterial({
+                color: 0xFFFFAA,
+                emissive: 0xFFFF44,
+                emissiveIntensity: 0.5,
+                roughness: 0.5
+            })
+        );
+        strip.position.set(barX + 0.2, shelfY - 0.05, barZStart + barLength / 2);
+        barGroup.add(strip);
+        const stripLight = new THREE.PointLight(0xFFFF88, 0.3, 3);
+        stripLight.position.set(barX + 0.2, shelfY - 0.15, barZStart + barLength / 2);
+        barGroup.add(stripLight);
+        // Colorful cups on shelf
         for (let b = 0; b < 4; b++) {
-            const cupColor = b % 2 === 0 ? 0xFFB6C1 : 0x87CEEB;
-            const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.07, 0.25, 12), new THREE.MeshStandardMaterial({ color: cupColor }));
-            const bz = barZStart + 1.2 + b * 1.0;
-            cup.position.set(barX + 0.4, shelfY + 0.15, bz);
+            const cupColor = [0xFFB6C1, 0x87CEEB, 0xB8F5B0, 0xFFD68A][b];
+            const cup = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.1, 0.07, 0.25, 12),
+                new THREE.MeshStandardMaterial({ color: cupColor })
+            );
+            cup.position.set(barX + 0.4, shelfY + 0.15, barZStart + 1.2 + b * 1.0);
             barGroup.add(cup);
+            // Saucer
+            const saucer = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.12, 0.12, 0.02, 10),
+                new THREE.MeshStandardMaterial({ color: 0xFFFAFA })
+            );
+            saucer.position.set(barX + 0.4, shelfY + 0.03, barZStart + 1.2 + b * 1.0);
+            barGroup.add(saucer);
         }
     }
 
@@ -480,8 +1037,8 @@ export function createRestaurant(scn) {
     barClickArea.position.set(barX, 2, barZStart + barLength / 2);
     barGroup.add(barClickArea);
 
-    // Bar ambient light (warm yellow)
-    const barAmbient = new THREE.PointLight(0xFFCC88, 0.4, 6);
+    // Bar ambient light (warm pink)
+    const barAmbient = new THREE.PointLight(0xFFCCDD, 0.5, 7);
     barAmbient.position.set(barX - 0.5, 2.5, barZStart + barLength / 2);
     barGroup.add(barAmbient);
 
@@ -588,6 +1145,202 @@ export function createRestaurant(scn) {
     scn.add(restaurant);
 
     return { restaurant, tables: tableData, kitchen: kitchenData, bar: barData, doorPosition, clockTail, animatedObjects };
+}
+
+// ---------- HELPER: Create Lantern (above door) ----------
+function createLantern() {
+    const group = new THREE.Group();
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x8E6A45, roughness: 0.8 });
+    // Hanging chain
+    const chain = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.5, 5), woodMat);
+    chain.position.y = 0.25;
+    group.add(chain);
+    // Lantern body
+    const body = new THREE.Mesh(
+        new THREE.BoxGeometry(0.3, 0.45, 0.3),
+        new THREE.MeshStandardMaterial({ color: 0x4A3E3D, roughness: 0.5 })
+    );
+    group.add(body);
+    // Glass panels (4 sides)
+    const glassMat = new THREE.MeshStandardMaterial({
+        color: 0xFFEEAA, emissive: 0xFFCC55, emissiveIntensity: 0.6,
+        transparent: true, opacity: 0.7, roughness: 0.1
+    });
+    for (let gs = 0; gs < 4; gs++) {
+        const angle = gs * Math.PI / 2;
+        const panel = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.38, 0.02), glassMat);
+        panel.position.set(Math.sin(angle) * 0.15, 0, Math.cos(angle) * 0.15);
+        panel.rotation.y = angle;
+        group.add(panel);
+    }
+    // Roof cone
+    const roof = new THREE.Mesh(
+        new THREE.ConeGeometry(0.22, 0.2, 4),
+        woodMat
+    );
+    roof.position.y = 0.32;
+    roof.rotation.y = Math.PI / 4;
+    group.add(roof);
+    // Bottom cap
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.1, 0.08, 8), woodMat);
+    cap.position.y = -0.265;
+    group.add(cap);
+    return group;
+}
+
+// ---------- HELPER: Create Wall Plant Shelf ----------
+function createWallPlantShelf() {
+    const group = new THREE.Group();
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0xC49A6C, roughness: 0.8 });
+    // Shelf board
+    const shelfBoard = new THREE.Mesh(
+        new THREE.BoxGeometry(0.08, 0.06, 1.6),
+        woodMat
+    );
+    group.add(shelfBoard);
+    // Bracket
+    const bracket = new THREE.Mesh(
+        new THREE.BoxGeometry(0.08, 0.4, 0.08),
+        woodMat
+    );
+    bracket.position.set(0, -0.2, 0);
+    group.add(bracket);
+    // 3 plant pots on shelf
+    const potColors = [0xD98D71, 0xC47A5A, 0xE8AA80];
+    const leafColors = [0x81C784, 0xA5D6A7, 0x66BB6A];
+    for (let pi = 0; pi < 3; pi++) {
+        const pot = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.08, 0.06, 0.14, 8),
+            new THREE.MeshStandardMaterial({ color: potColors[pi], roughness: 0.9 })
+        );
+        pot.position.set(0, 0.1, -0.5 + pi * 0.5);
+        group.add(pot);
+        const plant = new THREE.Mesh(
+            new THREE.SphereGeometry(0.1, 7, 7),
+            new THREE.MeshStandardMaterial({ color: leafColors[pi], roughness: 0.9 })
+        );
+        plant.scale.set(1, 0.85, 1);
+        plant.position.set(0, 0.25, -0.5 + pi * 0.5);
+        group.add(plant);
+        // Small leaf detail
+        const leafTip = new THREE.Mesh(
+            new THREE.SphereGeometry(0.06, 6, 6),
+            new THREE.MeshStandardMaterial({ color: leafColors[pi], roughness: 0.9 })
+        );
+        leafTip.position.set(0, 0.35, -0.5 + pi * 0.5 + 0.06);
+        group.add(leafTip);
+    }
+    return group;
+}
+
+// ---------- HELPER: Create Chandelier ----------
+function createChandelier() {
+    const group = new THREE.Group();
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0x8B7355, roughness: 0.4, metalness: 0.5 });
+    // Center column
+    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.6, 8), metalMat);
+    col.position.y = -0.3;
+    group.add(col);
+    // Crown ring
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.03, 6, 18), metalMat);
+    ring.position.y = -0.6;
+    ring.rotation.x = Math.PI / 2;
+    group.add(ring);
+    // 6 arms
+    for (let arm = 0; arm < 6; arm++) {
+        const angle = (arm / 6) * Math.PI * 2;
+        const armMesh = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.02, 0.02, 0.5, 6),
+            metalMat
+        );
+        armMesh.position.set(Math.cos(angle) * 0.25, -0.6, Math.sin(angle) * 0.25);
+        armMesh.rotation.z = Math.PI / 2;
+        armMesh.rotation.y = angle;
+        group.add(armMesh);
+        // Candle / bulb at arm tip
+        const shade = new THREE.Mesh(
+            new THREE.ConeGeometry(0.1, 0.15, 8, 1, true),
+            new THREE.MeshStandardMaterial({ color: 0xFFE5B4, roughness: 0.5, side: THREE.DoubleSide })
+        );
+        shade.position.set(Math.cos(angle) * 0.5, -0.6, Math.sin(angle) * 0.5);
+        shade.rotation.x = Math.PI;
+        group.add(shade);
+        const bulb = new THREE.Mesh(
+            new THREE.SphereGeometry(0.05, 6, 6),
+            new THREE.MeshStandardMaterial({ color: 0xFFFF88, emissive: 0xFFDD44, emissiveIntensity: 1 })
+        );
+        bulb.position.set(Math.cos(angle) * 0.5, -0.65, Math.sin(angle) * 0.5);
+        group.add(bulb);
+    }
+    // Decorative crystals / drops
+    for (let dr = 0; dr < 8; dr++) {
+        const angle = (dr / 8) * Math.PI * 2;
+        const drop = new THREE.Mesh(
+            new THREE.ConeGeometry(0.025, 0.12, 5),
+            new THREE.MeshStandardMaterial({ color: 0xDDEEFF, transparent: true, opacity: 0.8, roughness: 0.1 })
+        );
+        drop.position.set(Math.cos(angle) * 0.45, -0.78, Math.sin(angle) * 0.45);
+        drop.rotation.x = Math.PI;
+        group.add(drop);
+    }
+    return group;
+}
+
+// ---------- HELPER: Create Neon Sign (cat face) ----------
+function createNeonSign() {
+    const group = new THREE.Group();
+    const tubeMat = materials.barNeon;
+    const blueMat = materials.barNeonBlue;
+    // Outer ring (cat head shape)
+    const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.5, 0.04, 6, 24),
+        tubeMat
+    );
+    ring.rotation.y = Math.PI / 2;
+    group.add(ring);
+    // Cat ears (two triangular neon arcs)
+    for (const es of [-1, 1]) {
+        const ear = new THREE.Mesh(
+            new THREE.TorusGeometry(0.18, 0.035, 5, 8, Math.PI * 1.2),
+            tubeMat
+        );
+        ear.rotation.y = Math.PI / 2;
+        ear.rotation.z = es * 0.5 - 0.4;
+        ear.position.set(0, 0.42, es * 0.32);
+        group.add(ear);
+    }
+    // Eyes (small circles)
+    for (const es of [-1, 1]) {
+        const eye = new THREE.Mesh(
+            new THREE.TorusGeometry(0.08, 0.03, 5, 10),
+            blueMat
+        );
+        eye.rotation.y = Math.PI / 2;
+        eye.position.set(0, 0.1, es * 0.2);
+        group.add(eye);
+    }
+    // Smile arc
+    const smile = new THREE.Mesh(
+        new THREE.TorusGeometry(0.18, 0.03, 5, 10, Math.PI),
+        tubeMat
+    );
+    smile.rotation.y = Math.PI / 2;
+    smile.rotation.z = Math.PI;
+    smile.position.set(0, -0.12, 0);
+    group.add(smile);
+    // Whiskers (6 short tubes)
+    for (let wk = 0; wk < 3; wk++) {
+        for (const ws of [-1, 1]) {
+            const whisk = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.015, 0.015, 0.28, 5),
+                blueMat
+            );
+            whisk.rotation.z = Math.PI / 2;
+            whisk.position.set(0, -0.08 + wk * 0.08, ws * (0.18 + wk * 0.04));
+            group.add(whisk);
+        }
+    }
+    return group;
 }
 
 // ---------- HELPER: Create Puff Chair (Cats & Soup Style) ----------

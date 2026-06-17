@@ -1,4 +1,4 @@
-import { publisherSDK } from './publisher.js?v=17';
+import { publisherSDK } from './publisher.js?v=18';
 
 // ---------- DOM REFERENCES ----------
 const dom = {};
