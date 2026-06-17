@@ -2,7 +2,7 @@
 // publisher.js — Publisher SDK & Monetization Bridge
 // Supports Poki, CrazyGames, Telegram WebApp (TON) and local simulation fallbacks
 // ==========================================
-import { shopState, saveProgress } from './gameplay.js?v=16';
+import { shopState, saveProgress } from './gameplay.js?v=17';
 
 class PublisherSDK {
     constructor() {

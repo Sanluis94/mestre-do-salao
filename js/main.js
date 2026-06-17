@@ -3,15 +3,15 @@
 // Full Monetization: Tabs, Gacha, IAP, Skins, VIP (with Defensive programming checks)
 // ==========================================
 import * as THREE from 'three';
-import { initScene, createRestaurant, createWaiterModel, createPlateModel, createDrinkModel, updateCameraShake } from './scene.js?v=16';
-import { Game, shopState, saveProgress, getShopPrices, loadProgress } from './gameplay.js?v=16';
+import { initScene, createRestaurant, createWaiterModel, createPlateModel, createDrinkModel, updateCameraShake } from './scene.js?v=17';
+import { Game, shopState, saveProgress, getShopPrices, loadProgress } from './gameplay.js?v=17';
 import {
     initUI, initParticles, animateParticles,
     showScreen, hideLevelComplete, hideGameOver,
     showPause, hidePause, showMessage, showSimulatedAd,
     playSound
-} from './ui.js?v=16';
-import { publisherSDK } from './publisher.js?v=16';
+} from './ui.js?v=17';
+import { publisherSDK } from './publisher.js?v=17';
 
 // ---------- STATE ----------
 let sceneData = null;
@@ -762,6 +762,25 @@ function gameLoop() {
 
     if (game) {
         game.update(dt);
+    }
+
+    // --- Animate map decorations ---
+    if (restaurantData) {
+        const now = performance.now();
+        // Cat clock pendulum tail
+        if (restaurantData.clockTail) {
+            restaurantData.clockTail.rotation.z = Math.sin(now * 0.003) * 0.35;
+        }
+        // Animate any other registered animated objects
+        if (restaurantData.animatedObjects) {
+            for (const obj of restaurantData.animatedObjects) {
+                if (obj.type === 'float') {
+                    obj.mesh.position.y = obj.baseY + Math.sin(now * obj.speed + obj.offset) * obj.amplitude;
+                } else if (obj.type === 'sway') {
+                    obj.mesh.rotation.z = Math.sin(now * obj.speed + obj.offset) * obj.amplitude;
+                }
+            }
+        }
     }
 
     if (sceneData) {

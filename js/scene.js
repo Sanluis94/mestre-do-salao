@@ -363,6 +363,16 @@ export function createRestaurant(scn) {
         kitchenGroup.add(plateSpot);
     }
 
+    // Stack of plates on counter
+    const plateGeo = new THREE.CylinderGeometry(0.26, 0.26, 0.02, 12);
+    const plateMat = new THREE.MeshStandardMaterial({ color: 0xFFFAFA, roughness: 0.4 });
+    for (let i = 0; i < 5; i++) {
+        const pl = new THREE.Mesh(plateGeo, plateMat);
+        pl.position.set(4.6, 1.76 + 0.01 + i * 0.025, kz + 0.25);
+        pl.castShadow = true;
+        kitchenGroup.add(pl);
+    }
+
     // Ready food indicator light (Soft green glow)
     const readyLight = new THREE.PointLight(0x44FF44, 0, 5);
     readyLight.position.set(1.0, 3.0, kz + 0.5);
@@ -516,12 +526,68 @@ export function createRestaurant(scn) {
         }
     });
 
+    // --- ADDITIONAL VISUAL DETAILS (Windows, Clock, Rugs, Supplies, Blackboard) ---
+    // 1. Windows with Plant Pots
+    const window1 = createWindowWithPlant();
+    window1.position.set(-6, 3.5, -halfRoom + 0.12);
+    restaurant.add(window1);
+
+    const window2 = createWindowWithPlant();
+    window2.position.set(halfRoom - 0.12, 3.5, 4.0);
+    window2.rotation.y = -Math.PI / 2;
+    restaurant.add(window2);
+
+    // 2. Cat Clock (with Swinging Tail Pendulum)
+    const clock = createCatClock();
+    clock.position.set(2.0, 4.2, -halfRoom + 0.12);
+    restaurant.add(clock);
+    const clockTail = clock.userData.tailPivot; // reference to animate in main.js
+
+    // 3. Cat Rug near entrance
+    const rug = createCatRug();
+    rug.position.set(-5.5, 0.005, doorZ);
+    restaurant.add(rug);
+
+    // 4. Supplies sacks in kitchen corner
+    const sacks = createSuppliesPile();
+    sacks.position.set(-0.5, 0.0, -halfRoom + 1.2);
+    restaurant.add(sacks);
+
+    // 5. Bar Menu Blackboard
+    const blackboard = createBlackboard();
+    blackboard.position.set(halfRoom - 0.12, 3.2, barZStart + 1.8);
+    blackboard.rotation.y = -Math.PI / 2;
+    restaurant.add(blackboard);
+
     // Door position (where customers appear)
     const doorPosition = new THREE.Vector3(-halfRoom - 1, 0, doorZ);
 
+    // --- ANIMATED OBJECTS REGISTRY ---
+    // Objects here are animated in main.js gameLoop
+    const animatedObjects = [];
+
+    // Register the two plant leaf groups for a gentle sway
+    // We need to get refs to them. Re-use createWindowWithPlant's returned data.
+    // Since we don't have direct refs, we'll use the clock's tail (already via clockTail).
+    // For plants, we scan the window groups for the leaf child (position z > 0 pattern).
+    [window1, window2].forEach((win, wi) => {
+        // The leaves group is the last child added (index varies), so find by position
+        win.traverse(child => {
+            if (child.isGroup && child.children.length >= 4 && Math.abs(child.position.x) > 0.4) {
+                animatedObjects.push({
+                    type: 'sway',
+                    mesh: child,
+                    speed: 0.0008 + wi * 0.0003,
+                    amplitude: 0.04,
+                    offset: wi * 1.2,
+                });
+            }
+        });
+    });
+
     scn.add(restaurant);
 
-    return { restaurant, tables: tableData, kitchen: kitchenData, bar: barData, doorPosition };
+    return { restaurant, tables: tableData, kitchen: kitchenData, bar: barData, doorPosition, clockTail, animatedObjects };
 }
 
 // ---------- HELPER: Create Puff Chair (Cats & Soup Style) ----------
@@ -587,6 +653,275 @@ function createPainting(w, h, color) {
     const right = new THREE.Mesh(new THREE.BoxGeometry(frameTh, h, 0.08), frameMat);
     right.position.x = w / 2 + frameTh / 2;
     group.add(right);
+    return group;
+}
+
+// ---------- HELPER: Create Window with Plant Pot ----------
+function createWindowWithPlant() {
+    const group = new THREE.Group();
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0xFFFAFA, roughness: 0.6 }); // Cozy white wood
+    
+    // Glass pane (light blue/cyan translucid)
+    const glass = new THREE.Mesh(
+        new THREE.BoxGeometry(2.2, 1.6, 0.02),
+        new THREE.MeshStandardMaterial({ color: 0xBAE1FF, roughness: 0.1, transparent: true, opacity: 0.6 })
+    );
+    group.add(glass);
+
+    // Outer frame borders
+    const th = 0.06;
+    const top = new THREE.Mesh(new THREE.BoxGeometry(2.2 + th * 2, th, 0.08), frameMat);
+    top.position.y = 0.8 + th / 2;
+    group.add(top);
+    
+    const bot = new THREE.Mesh(new THREE.BoxGeometry(2.2 + th * 2, th, 0.08), frameMat);
+    bot.position.y = -0.8 - th / 2;
+    group.add(bot);
+
+    const left = new THREE.Mesh(new THREE.BoxGeometry(th, 1.6, 0.08), frameMat);
+    left.position.x = -1.1 - th / 2;
+    group.add(left);
+
+    const right = new THREE.Mesh(new THREE.BoxGeometry(th, 1.6, 0.08), frameMat);
+    right.position.x = 1.1 + th / 2;
+    group.add(right);
+
+    // Inner cross grid
+    const hBar = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.03, 0.04), frameMat);
+    group.add(hBar);
+
+    const vBar = new THREE.Mesh(new THREE.BoxGeometry(0.03, 1.6, 0.04), frameMat);
+    group.add(vBar);
+
+    // Window Sill (wooden shelf)
+    const sill = new THREE.Mesh(
+        new THREE.BoxGeometry(2.4, 0.05, 0.28),
+        new THREE.MeshStandardMaterial({ color: 0xD3A978, roughness: 0.7 })
+    );
+    sill.position.set(0, -0.825, 0.13);
+    group.add(sill);
+
+    // Flower Pot on the sill
+    const pot = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.08, 0.06, 0.15, 8),
+        new THREE.MeshStandardMaterial({ color: 0xD98D71, roughness: 0.9 }) // Terracotta
+    );
+    pot.position.set(0.6, -0.725, 0.14);
+    pot.castShadow = true;
+    group.add(pot);
+
+    // Green plant (succulent cluster)
+    const leaves = new THREE.Group();
+    leaves.position.set(0.6, -0.62, 0.14);
+    const leafMat = new THREE.MeshStandardMaterial({ color: 0x81C784, roughness: 0.8 }); // Green
+    
+    const centerLeaf = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), leafMat);
+    centerLeaf.scale.set(1, 0.8, 1);
+    leaves.add(centerLeaf);
+
+    for (let i = 0; i < 3; i++) {
+        const angle = (i / 3) * Math.PI * 2;
+        const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), leafMat);
+        leaf.position.set(Math.cos(angle) * 0.06, -0.02, Math.sin(angle) * 0.06);
+        leaves.add(leaf);
+    }
+    group.add(leaves);
+
+    return group;
+}
+
+// ---------- HELPER: Create Cat Clock with Swinging Pendulum ----------
+function createCatClock() {
+    const group = new THREE.Group();
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x4A3E3D, roughness: 0.5 }); // Dark brown body
+
+    // Cat head outline (flat cylinder)
+    const bodyGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.06, 12);
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.rotation.x = Math.PI / 2;
+    body.castShadow = true;
+    group.add(body);
+
+    // Cat ears on top
+    const earMat = bodyMat;
+    for (const side of [-1, 1]) {
+        const ear = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.22, 4), earMat);
+        ear.position.set(side * 0.2, 0.35, 0);
+        ear.rotation.z = side * -0.15;
+        group.add(ear);
+    }
+
+    // White clock face
+    const faceGeo = new THREE.CylinderGeometry(0.26, 0.26, 0.07, 12);
+    const face = new THREE.Mesh(faceGeo, new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.5 }));
+    face.rotation.x = Math.PI / 2;
+    face.position.z = 0.01;
+    group.add(face);
+
+    // Clock nose (tiny pink dot)
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 6), new THREE.MeshStandardMaterial({ color: 0xFFB6C1 }));
+    nose.position.set(0, 0.02, 0.05);
+    group.add(nose);
+
+    // Clock eyes (two small black spheres)
+    for (const side of [-1, 1]) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 6), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+        eye.position.set(side * 0.1, 0.1, 0.05);
+        group.add(eye);
+    }
+
+    // Hands (hour and minute hands)
+    const handMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+    const hourHand = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.12, 0.01), handMat);
+    hourHand.position.set(0, 0.06, 0.05);
+    hourHand.rotation.z = -Math.PI / 3;
+    group.add(hourHand);
+
+    const minuteHand = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.18, 0.01), handMat);
+    minuteHand.position.set(0.04, 0.08, 0.05);
+    minuteHand.rotation.z = Math.PI / 6;
+    group.add(minuteHand);
+
+    // Swinging Tail Pendulum (pivoted from bottom)
+    const tailPivot = new THREE.Group();
+    tailPivot.position.set(0, -0.36, 0.01);
+    
+    // Tail mesh
+    const tailGeo = new THREE.CylinderGeometry(0.022, 0.035, 0.5, 6);
+    tailGeo.translate(0, -0.22, 0); // pivot at top
+    const tailMesh = new THREE.Mesh(tailGeo, bodyMat);
+    tailMesh.rotation.z = 0.1; // slight offset
+    tailPivot.add(tailMesh);
+    
+    // Tail tip (white)
+    const tipMesh = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 6), new THREE.MeshStandardMaterial({ color: 0xFFFFFF }));
+    tipMesh.position.set(0, -0.45, 0);
+    tailPivot.add(tipMesh);
+
+    group.add(tailPivot);
+    group.userData = { tailPivot }; // store reference for main loop animation
+
+    return group;
+}
+
+// ---------- HELPER: Create Supplies Pile (Sacks for Kitchen) ----------
+function createSuppliesPile() {
+    const group = new THREE.Group();
+    const sackMat = new THREE.MeshStandardMaterial({ color: 0xD2B48C, roughness: 0.95 }); // Canvas/burlap beige
+    
+    // Sack 1 (standing)
+    const sack1 = new THREE.Group();
+    sack1.position.set(-0.25, 0.4, 0);
+    const body1 = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 0.75, 8), sackMat);
+    body1.castShadow = true;
+    sack1.add(body1);
+    const top1 = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), sackMat);
+    top1.position.y = 0.355;
+    top1.scale.set(1, 0.5, 1);
+    sack1.add(top1);
+    
+    // Tie rope
+    const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.04, 8), new THREE.MeshStandardMaterial({ color: 0x8E6A45 }));
+    rope.position.y = 0.3;
+    sack1.add(rope);
+    group.add(sack1);
+
+    // Sack 2 (leaning / smaller)
+    const sack2 = new THREE.Group();
+    sack2.position.set(0.2, 0.3, 0.15);
+    sack2.rotation.set(0.2, 0, -0.5);
+    const body2 = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.55, 8), sackMat);
+    body2.castShadow = true;
+    sack2.add(body2);
+    const top2 = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), sackMat);
+    top2.position.y = 0.26;
+    top2.scale.set(1, 0.5, 1);
+    sack2.add(top2);
+    group.add(sack2);
+
+    return group;
+}
+
+// ---------- HELPER: Create Bar Blackboard Menu ----------
+function createBlackboard() {
+    const group = new THREE.Group();
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x8E6A45, roughness: 0.8 }); // Brown wood
+    const boardMat = new THREE.MeshStandardMaterial({ color: 0x2C3E50, roughness: 0.9 }); // Slate grey/dark blue
+
+    // Slate board
+    const board = new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.4, 1.0), boardMat);
+    group.add(board);
+
+    // Wooden frames
+    const fTh = 0.06;
+    const top = new THREE.Mesh(new THREE.BoxGeometry(0.06, fTh, 1.0 + fTh * 2), woodMat);
+    top.position.y = 0.7 + fTh / 2;
+    group.add(top);
+
+    const bot = new THREE.Mesh(new THREE.BoxGeometry(0.06, fTh, 1.0 + fTh * 2), woodMat);
+    bot.position.y = -0.7 - fTh / 2;
+    group.add(bot);
+
+    const left = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.4, fTh), woodMat);
+    left.position.z = -0.5 - fTh / 2;
+    group.add(left);
+
+    const right = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.4, fTh), woodMat);
+    right.position.z = 0.5 + fTh / 2;
+    group.add(right);
+
+    // Decorative "chalk" text lines
+    const chalkMat = new THREE.MeshStandardMaterial({ color: 0xFAFAFA, roughness: 1.0 });
+    const header = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.5, 4), chalkMat);
+    header.rotation.x = Math.PI / 2;
+    header.position.set(0.015, 0.45, 0); // Menu title line
+    group.add(header);
+
+    for (let i = 0; i < 4; i++) {
+        const line = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.6, 4), chalkMat);
+        line.rotation.x = Math.PI / 2;
+        line.position.set(0.015, 0.2 - i * 0.22, -0.05);
+        group.add(line);
+
+        // Price dot
+        const price = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.15, 4), chalkMat);
+        price.rotation.x = Math.PI / 2;
+        price.position.set(0.015, 0.2 - i * 0.22, 0.35);
+        group.add(price);
+    }
+
+    return group;
+}
+
+// ---------- HELPER: Create Cat-Eared Rug ----------
+function createCatRug() {
+    const group = new THREE.Group();
+    const rugMat = new THREE.MeshStandardMaterial({ color: 0xFFE5CC, roughness: 0.95 }); // Soft cream
+
+    // Oval rug (cylinder squashed)
+    const rug = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, 0.02, 24), rugMat);
+    rug.scale.set(1.4, 1.0, 1.0);
+    rug.receiveShadow = true;
+    group.add(rug);
+
+    // Cat ears
+    const earMat = rugMat;
+    for (const side of [-1, 1]) {
+        const ear = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.02, 3), earMat);
+        ear.rotation.y = side * 0.2;
+        ear.position.set(side * 0.6, 0.0, -0.9);
+        ear.scale.set(1.0, 1.0, 0.75);
+        ear.receiveShadow = true;
+        group.add(ear);
+        
+        // Inner ear (pink)
+        const inner = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.022, 3), new THREE.MeshStandardMaterial({ color: 0xFFB6C1 }));
+        inner.rotation.y = side * 0.2;
+        inner.position.set(side * 0.6, 0.001, -0.87);
+        inner.scale.set(1.0, 1.0, 0.75);
+        group.add(inner);
+    }
+
     return group;
 }
 
