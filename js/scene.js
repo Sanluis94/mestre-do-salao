@@ -337,16 +337,30 @@ export function createRestaurant(scn) {
 
     // --- DOUBLE BASEBOARD (tall baseboard + thin upper cap) ---
     const trimH = 0.35;
-    // Lower baseboard (thick, painted)
+    // Back wall baseboard
     const trimBack = new THREE.Mesh(new THREE.BoxGeometry(roomSize, trimH, 0.07), materials.wallTrim);
     trimBack.position.set(0, trimH / 2, -halfRoom + 0.22);
     restaurant.add(trimBack);
+    // Right wall baseboard
     const trimRight = new THREE.Mesh(new THREE.BoxGeometry(0.07, trimH, roomSize), materials.wallTrim);
     trimRight.position.set(halfRoom - 0.22, trimH / 2, 0);
     restaurant.add(trimRight);
-    const trimLeft = new THREE.Mesh(new THREE.BoxGeometry(0.07, trimH, roomSize), materials.wallTrim);
-    trimLeft.position.set(-halfRoom + 0.22, trimH / 2, 0);
-    restaurant.add(trimLeft);
+    // Left wall baseboard — TWO SEGMENTS to skip the door opening
+    // Door: doorZ=3, doorWidth=3 → door spans z=1.5 to z=4.5
+    const doorStart = doorZ - doorWidth / 2; // 1.5
+    const doorEnd2  = doorZ + doorWidth / 2; // 4.5
+    // Segment before door
+    const seg1Len = doorStart - (-halfRoom); // 10.5
+    const seg1Ctr = -halfRoom + seg1Len / 2;
+    const trimLeft1 = new THREE.Mesh(new THREE.BoxGeometry(0.07, trimH, seg1Len), materials.wallTrim);
+    trimLeft1.position.set(-halfRoom + 0.22, trimH / 2, seg1Ctr);
+    restaurant.add(trimLeft1);
+    // Segment after door
+    const seg2Len = halfRoom - doorEnd2; // 4.5
+    const seg2Ctr = doorEnd2 + seg2Len / 2;
+    const trimLeft2 = new THREE.Mesh(new THREE.BoxGeometry(0.07, trimH, seg2Len), materials.wallTrim);
+    trimLeft2.position.set(-halfRoom + 0.22, trimH / 2, seg2Ctr);
+    restaurant.add(trimLeft2);
     // Upper cap (thin)
     const capH = 0.1;
     const capBack = new THREE.Mesh(new THREE.BoxGeometry(roomSize, capH, 0.1), materials.wallLambriDark);
@@ -355,19 +369,22 @@ export function createRestaurant(scn) {
     const capRight = new THREE.Mesh(new THREE.BoxGeometry(0.1, capH, roomSize), materials.wallLambriDark);
     capRight.position.set(halfRoom - 0.23, trimH + capH / 2, 0);
     restaurant.add(capRight);
-    const capLeft = new THREE.Mesh(new THREE.BoxGeometry(0.1, capH, roomSize), materials.wallLambriDark);
-    capLeft.position.set(-halfRoom + 0.23, trimH + capH / 2, 0);
-    restaurant.add(capLeft);
+    // Left wall cap — same two-segment split
+    const capLeft1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, capH, seg1Len), materials.wallLambriDark);
+    capLeft1.position.set(-halfRoom + 0.23, trimH + capH / 2, seg1Ctr);
+    restaurant.add(capLeft1);
+    const capLeft2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, capH, seg2Len), materials.wallLambriDark);
+    capLeft2.position.set(-halfRoom + 0.23, trimH + capH / 2, seg2Ctr);
+    restaurant.add(capLeft2);
 
-    // --- WALL PLANT SHELVES (corner decoration) ---
+    // --- WALL PLANT SHELVES (right wall, correct projection) ---
+    // Position flush against right wall (halfRoom - 0.22), shelf projects inward (negative X)
     const plantShelf1 = createWallPlantShelf();
-    plantShelf1.position.set(halfRoom - 0.25, 3.0, -halfRoom + 1.5);
-    plantShelf1.rotation.y = -Math.PI / 2;
+    plantShelf1.position.set(halfRoom - 0.22, 3.0, -halfRoom + 2.0);
     restaurant.add(plantShelf1);
 
     const plantShelf2 = createWallPlantShelf();
-    plantShelf2.position.set(halfRoom - 0.25, 3.0, halfRoom - 1.5);
-    plantShelf2.rotation.y = -Math.PI / 2;
+    plantShelf2.position.set(halfRoom - 0.22, 3.0, halfRoom - 2.0);
     restaurant.add(plantShelf2);
 
     // --- TWO CENTRAL CHANDELIERS ---
@@ -1192,43 +1209,45 @@ function createLantern() {
 function createWallPlantShelf() {
     const group = new THREE.Group();
     const woodMat = new THREE.MeshStandardMaterial({ color: 0xC49A6C, roughness: 0.8 });
-    // Shelf board
+    // Shelf board: extends 0.3 outward from wall (X), runs 1.4 along wall (Z)
     const shelfBoard = new THREE.Mesh(
-        new THREE.BoxGeometry(0.08, 0.06, 1.6),
+        new THREE.BoxGeometry(0.3, 0.06, 1.4),
         woodMat
     );
+    shelfBoard.position.set(-0.15, 0, 0); // offset so back edge touches wall
     group.add(shelfBoard);
-    // Bracket
-    const bracket = new THREE.Mesh(
-        new THREE.BoxGeometry(0.08, 0.4, 0.08),
-        woodMat
-    );
-    bracket.position.set(0, -0.2, 0);
-    group.add(bracket);
-    // 3 plant pots on shelf
+    // Two L-brackets underneath
+    for (const bz of [-0.5, 0.5]) {
+        const bVertical = new THREE.Mesh(
+            new THREE.BoxGeometry(0.05, 0.3, 0.05),
+            woodMat
+        );
+        bVertical.position.set(-0.05, -0.18, bz);
+        group.add(bVertical);
+        const bHorizontal = new THREE.Mesh(
+            new THREE.BoxGeometry(0.25, 0.05, 0.05),
+            woodMat
+        );
+        bHorizontal.position.set(-0.125, -0.06, bz);
+        group.add(bHorizontal);
+    }
+    // 3 plant pots sitting on the shelf surface
     const potColors = [0xD98D71, 0xC47A5A, 0xE8AA80];
     const leafColors = [0x81C784, 0xA5D6A7, 0x66BB6A];
     for (let pi = 0; pi < 3; pi++) {
         const pot = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.08, 0.06, 0.14, 8),
+            new THREE.CylinderGeometry(0.07, 0.055, 0.13, 8),
             new THREE.MeshStandardMaterial({ color: potColors[pi], roughness: 0.9 })
         );
-        pot.position.set(0, 0.1, -0.5 + pi * 0.5);
+        pot.position.set(-0.12, 0.1, -0.48 + pi * 0.48);
         group.add(pot);
         const plant = new THREE.Mesh(
             new THREE.SphereGeometry(0.1, 7, 7),
             new THREE.MeshStandardMaterial({ color: leafColors[pi], roughness: 0.9 })
         );
         plant.scale.set(1, 0.85, 1);
-        plant.position.set(0, 0.25, -0.5 + pi * 0.5);
+        plant.position.set(-0.12, 0.24, -0.48 + pi * 0.48);
         group.add(plant);
-        // Small leaf detail
-        const leafTip = new THREE.Mesh(
-            new THREE.SphereGeometry(0.06, 6, 6),
-            new THREE.MeshStandardMaterial({ color: leafColors[pi], roughness: 0.9 })
-        );
-        leafTip.position.set(0, 0.35, -0.5 + pi * 0.5 + 0.06);
-        group.add(leafTip);
     }
     return group;
 }

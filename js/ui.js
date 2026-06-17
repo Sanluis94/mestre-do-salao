@@ -1,4 +1,4 @@
-import { publisherSDK } from './publisher.js?v=18';
+import { publisherSDK } from './publisher.js?v=19';
 
 // ---------- DOM REFERENCES ----------
 const dom = {};
@@ -210,33 +210,40 @@ export function updateHUD(state) {
 export function updateOrders(orders) {
     if (!dom.ordersList) return;
     dom.ordersList.innerHTML = '';
-    orders.forEach(order => {
+
+    // Only show active orders: not yet delivered, not carrying away already
+    const visibleOrders = orders.filter(o =>
+        o.menuItem &&
+        o.state !== 'done' &&
+        o.state !== 'delivered'
+    );
+
+    visibleOrders.forEach(order => {
         const div = document.createElement('div');
         div.className = 'order-item';
         if (order.state === 'cooking') div.classList.add('cooking');
         if (order.state === 'ready') div.classList.add('ready');
 
-        const statusText = order.state === 'cooking' ? '🔥 Preparando...' :
-                           order.state === 'ready' ? '✅ Pronto!' :
-                           order.state === 'taken' ? '📝 Registrado' :
-                           order.state === 'carrying' ? '🏃 Levando...' :
-                           order.state === 'delivered' ? '🍽️ Entregue' : '';
+        const statusText = order.state === 'cooking'  ? '🔥 Preparando...' :
+                           order.state === 'ready'    ? '✅ Pronto!' :
+                           order.state === 'taken'    ? '📝 Registrado' :
+                           order.state === 'carrying' ? '🏃 A caminho...' : '';
         const statusClass = order.state === 'cooking' ? 'status-cooking' :
-                            order.state === 'ready' ? 'status-ready' : '';
+                            order.state === 'ready'   ? 'status-ready' : '';
 
         // Station label
         const station = order.menuItem?.station;
         const stationLabel = station === 'bar' ? '🍺 Bar' : '🍳 Cozinha';
 
-        // Calculate cooking progress
+        // Calculate cooking progress — use menuItem.cookTime as total
         let progressHTML = '';
-        if (order.state === 'cooking' && order.cookTime && order.cookTimer !== undefined) {
-            const total = order.menuItem.cookTime;
-            const elapsed = total - order.cookTimer;
-            const pct = Math.min(100, (elapsed / total) * 100);
-            progressHTML = `<div class="order-progress"><div class="order-progress-fill" style="width: ${pct}%"></div></div>`;
-        } else if (order.state === 'ready') {
-            progressHTML = `<div class="order-progress"><div class="order-progress-fill done" style="width: 100%"></div></div>`;
+        const totalCook = order.menuItem?.cookTime;
+        if (order.state === 'cooking' && totalCook && order.cookTimer !== undefined) {
+            const elapsed = totalCook - order.cookTimer;
+            const pct = Math.min(100, Math.max(0, (elapsed / totalCook) * 100));
+            progressHTML = `<div class="order-progress"><div class="order-progress-fill" style="width:${pct}%"></div></div>`;
+        } else if (order.state === 'ready' || order.state === 'carrying') {
+            progressHTML = `<div class="order-progress"><div class="order-progress-fill done" style="width:100%"></div></div>`;
         }
 
         div.innerHTML = `
@@ -249,6 +256,14 @@ export function updateOrders(orders) {
         `;
         dom.ordersList.appendChild(div);
     });
+
+    // Show empty state when no orders
+    if (visibleOrders.length === 0) {
+        const empty = document.createElement('div');
+        empty.style.cssText = 'text-align:center;opacity:0.45;font-size:0.8rem;padding:12px 0;';
+        empty.textContent = '✨ Nenhum pedido ativo';
+        dom.ordersList.appendChild(empty);
+    }
 }
 
 // ---------- FLOATING MONEY POPUP ----------
