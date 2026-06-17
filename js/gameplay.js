@@ -6,7 +6,7 @@ import {
     createWaiterModel, createCustomerModel, createPlateModel,
     createDirtyTableIndicator, createPatienceBar, updatePatienceBar,
     updateKitchenReady, updateBarReady, createDrinkModel,
-    triggerScreenShake
+    triggerScreenShake, updateModelAnimations, getSteamSources
 } from './scene.js?v=12';
 import {
     updateHUD, updateOrders, showMessage, showLevelComplete, showGameOver,
@@ -455,6 +455,11 @@ export class Game {
         this.dashActive = false;
         this.dashTimer = 0;
         this.dashCooldown = 0;
+
+        // Steam particles
+        this.steamParticles = [];
+        this.steamTimer = 0;
+        this.steamSources = getSteamSources();
         this.dashCooldownMax = 1.5;
         this.dashDuration = 0.4;
         this.dashSpeedMultiplier = 1.6;
@@ -587,12 +592,36 @@ export class Game {
             }
         }
 
+        // Update steam particles (kitchen/bar ambiance)
+        this.steamTimer -= dt;
+        if (this.steamTimer <= 0 && this.steamSources) {
+            this.steamTimer = 0.35 + Math.random() * 0.4;
+            for (const src of this.steamSources) {
+                this._spawnSteam(src);
+            }
+        }
+        if (this.steamParticles) {
+            for (let i = this.steamParticles.length - 1; i >= 0; i--) {
+                const p = this.steamParticles[i];
+                p.timer -= dt;
+                if (p.timer <= 0) {
+                    this.scene.remove(p.mesh);
+                    this.steamParticles.splice(i, 1);
+                } else {
+                    p.mesh.position.y += dt * 0.5;
+                    p.mesh.material.opacity = (p.timer / p.maxTimer) * 0.4;
+                    p.mesh.scale.multiplyScalar(1.01);
+                }
+            }
+        }
+
         // Update dash 3D particles in scene
         if (this.dashParticles) {
             for (let i = this.dashParticles.length - 1; i >= 0; i--) {
                 const p = this.dashParticles[i];
                 p.timer -= dt;
                 if (p.timer <= 0) {
+
                     this.scene.remove(p.mesh);
                     this.dashParticles.splice(i, 1);
                 } else {
@@ -708,6 +737,30 @@ export class Game {
         });
     }
 
+    _spawnSteam(pos) {
+        const geom = new THREE.SphereGeometry(0.12 + Math.random() * 0.08, 4, 4);
+        const mat = new THREE.MeshBasicMaterial({
+            color: 0xFFFFFF,
+            transparent: true,
+            opacity: 0.35
+        });
+        const mesh = new THREE.Mesh(geom, mat);
+        
+        mesh.position.copy(pos);
+        mesh.position.x += (Math.random() - 0.5) * 0.15;
+        mesh.position.z += (Math.random() - 0.5) * 0.15;
+        mesh.position.y += (Math.random() - 0.5) * 0.1;
+        
+        this.scene.add(mesh);
+        
+        const lifetime = 1.0 + Math.random() * 0.6;
+        this.steamParticles.push({
+            mesh,
+            timer: lifetime,
+            maxTimer: lifetime
+        });
+    }
+
     isLevelComplete() {
         const cfg = this.getLevelConfig();
         // Level done when all customers spawned AND no active customers
@@ -765,6 +818,15 @@ export class Game {
     updateCustomers(dt) {
         for (let i = this.customers.length - 1; i >= 0; i--) {
             const c = this.customers[i];
+
+            // Update model animations based on customer state
+            let custAnimState = 'idle';
+            if (c.state === 'following' || c.state === 'leaving') {
+                custAnimState = 'walking';
+            } else if (c.state === 'eating') {
+                custAnimState = 'eating';
+            }
+            updateModelAnimations(dt, c.model, custAnimState, 1.0);
 
             // Patience decreases while waiting (not while eating or leaving)
             if (['waiting_at_door', 'seated', 'ordering', 'waiting_food'].includes(c.state)) {
@@ -994,7 +1056,17 @@ export class Game {
 
     // ---------- UPDATE WAITER (follows A* path) ----------
     updateWaiter(dt) {
-        if (this.waiterState !== 'walking' || !this.waiter) return;
+        if (!this.waiter) return;
+
+        let waiterAnimState = 'idle';
+        if (this.waiterState === 'walking') {
+            waiterAnimState = this.waiterCarrying ? 'carrying' : 'walking';
+        }
+        updateModelAnimations(dt, this.waiter, waiterAnimState, this.dashActive ? this.dashSpeedMultiplier : 1.0);
+
+        if (this.waiterState !== 'walking') {
+            return;
+        }
         if (this.waiterPath.length === 0) {
             this.waiterState = 'idle';
             this.executeWaiterAction();

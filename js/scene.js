@@ -595,33 +595,48 @@ function createPainting(w, h, color) {
 // Helper: build cat ears on a group at a given head Y position
 function addCatEars(group, headY, furMat, innerMat) {
     const earGeo = new THREE.ConeGeometry(0.1, 0.22, 4);
+    const ears = [];
     for (const side of [-1, 1]) {
+        const earPivot = new THREE.Group();
+        earPivot.position.set(side * 0.14, headY + 0.2, 0);
+        earPivot.rotation.z = side * -0.15;
+        
         const ear = new THREE.Mesh(earGeo, furMat);
-        ear.position.set(side * 0.14, headY + 0.24, 0);
-        ear.rotation.z = side * -0.15;
+        ear.position.set(0, 0.04, 0); // pivot at base
         ear.castShadow = true;
-        group.add(ear);
+        earPivot.add(ear);
+
         // Inner ear (pink)
         const innerEar = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.14, 4), innerMat);
-        innerEar.position.set(side * 0.14, headY + 0.24, 0.02);
-        innerEar.rotation.z = side * -0.15;
-        group.add(innerEar);
+        innerEar.position.set(0, 0.04, 0.02);
+        earPivot.add(innerEar);
+
+        group.add(earPivot);
+        ears.push(earPivot);
     }
+    return ears;
 }
 
 // Helper: build cat tail
 function addCatTail(group, bodyY, furMat) {
-    // Tail base
+    const tailPivot = new THREE.Group();
+    tailPivot.position.set(0, bodyY + 0.1, -0.22);
+    tailPivot.rotation.x = -0.6;
+
+    // Tail base (tail1)
     const tail1 = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 0.5, 6), furMat);
-    tail1.position.set(0, bodyY + 0.1, -0.3);
-    tail1.rotation.x = -0.6;
+    tail1.position.set(0, 0.25, 0); // offset so pivot is at base
     tail1.castShadow = true;
-    group.add(tail1);
-    // Tail tip (curves up)
+    tailPivot.add(tail1);
+
+    // Tail tip (tail2)
     const tail2 = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.04, 0.35, 6), furMat);
-    tail2.position.set(0, bodyY + 0.42, -0.48);
-    tail2.rotation.x = -1.2;
-    group.add(tail2);
+    tail2.position.set(0, 0.45, -0.1);
+    tail2.rotation.x = -0.6;
+    tailPivot.add(tail2);
+
+    group.add(tailPivot);
+    return tailPivot;
 }
 
 // Helper: build cat snout + whiskers
@@ -751,17 +766,66 @@ export function createWaiterModel(skin = 'default') {
     group.add(faceMask);
 
     // Ears, face, tail
-    addCatEars(group, 1.52, earMat, materials.catPink);
+    const ears = addCatEars(group, 1.52, earMat, materials.catPink);
     addCatFace(group, 1.52, materials.catPink);
-    addCatTail(group, 0.8, tailMat);
+    const tailPivot = addCatTail(group, 0.8, tailMat);
 
-    // Paws (front feet visible)
-    const pawMat = secondaryMat;
-    for (const side of [-1, 1]) {
-        const paw = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), pawMat);
-        paw.position.set(side * 0.18, 0.32, 0.1);
-        group.add(paw);
-    }
+    // Arms (left and right shoulder pivots)
+    const armGeo = new THREE.CylinderGeometry(0.045, 0.04, 0.35, 6);
+    armGeo.translate(0, -0.175, 0); // pivot at shoulder
+    const leftArm = new THREE.Mesh(armGeo, primaryMat);
+    leftArm.position.set(-0.32, 1.0, 0.0);
+    const rightArm = new THREE.Mesh(armGeo, primaryMat);
+    rightArm.position.set(0.32, 1.0, 0.0);
+
+    // Add paw spheres at the bottom of the arms
+    const pawGeo = new THREE.SphereGeometry(0.06, 6, 6);
+    const leftArmPaw = new THREE.Mesh(pawGeo, secondaryMat);
+    leftArmPaw.position.set(0, -0.35, 0);
+    leftArm.add(leftArmPaw);
+    const rightArmPaw = new THREE.Mesh(pawGeo, secondaryMat);
+    rightArmPaw.position.set(0, -0.35, 0);
+    rightArm.add(rightArmPaw);
+
+    group.add(leftArm);
+    group.add(rightArm);
+
+    // Legs (left and right hip pivots)
+    const legGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 6);
+    legGeo.translate(0, -0.15, 0); // pivot at hip
+    const leftLeg = new THREE.Mesh(legGeo, primaryMat);
+    leftLeg.position.set(-0.16, 0.35, 0.05);
+    const rightLeg = new THREE.Mesh(legGeo, primaryMat);
+    rightLeg.position.set(0.16, 0.35, 0.05);
+
+    // Add paw spheres at the bottom of the legs
+    const leftLegPaw = new THREE.Mesh(pawGeo, secondaryMat);
+    leftLegPaw.position.set(0, -0.3, 0.02);
+    leftLeg.add(leftLegPaw);
+    const rightLegPaw = new THREE.Mesh(pawGeo, secondaryMat);
+    rightLegPaw.position.set(0, -0.3, 0.02);
+    rightLeg.add(rightLegPaw);
+
+    group.add(leftLeg);
+    group.add(rightLeg);
+
+    // Collar & Bell
+    const collarMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.26, 0.05, 12),
+        new THREE.MeshStandardMaterial({ color: 0xD32F2F, roughness: 0.6 })); // Red collar
+    collarMesh.position.set(0, 1.25, 0.02);
+    group.add(collarMesh);
+
+    const bellPivot = new THREE.Group();
+    bellPivot.position.set(0, 1.25, 0.26); // hang at the front of collar
+    const bellChain = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.06, 4),
+        new THREE.MeshStandardMaterial({ color: 0xFFD700, roughness: 0.2, metalness: 0.8 }));
+    bellChain.position.y = -0.03;
+    bellPivot.add(bellChain);
+    const bellSphere = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8),
+        new THREE.MeshStandardMaterial({ color: 0xFFD700, roughness: 0.1, metalness: 0.9 })); // Golden bell
+    bellSphere.position.y = -0.07;
+    bellPivot.add(bellSphere);
+    group.add(bellPivot);
 
     // --- Accessory overlays based on skin ---
     if (skin === 'chef') {
@@ -812,6 +876,20 @@ export function createWaiterModel(skin = 'default') {
         }
     }
 
+    group.userData = {
+        type: 'waiter',
+        skin,
+        leftArm,
+        rightArm,
+        leftLeg,
+        rightLeg,
+        tailPivot,
+        ears,
+        bellPivot,
+        body,
+        head
+    };
+
     return group;
 }
 
@@ -852,18 +930,61 @@ export function createCustomerModel(colorIndex) {
     group.add(head);
 
     // Ears, face, tail
-    addCatEars(group, 1.42, furMat, materials.catPink);
+    const ears = addCatEars(group, 1.42, furMat, materials.catPink);
     addCatFace(group, 1.42, materials.catPink);
-    addCatTail(group, 0.75, furMat);
+    const tailPivot = addCatTail(group, 0.75, furMat);
 
-    // Paws
+    // Arms (left and right shoulder pivots)
+    const armGeo = new THREE.CylinderGeometry(0.045, 0.04, 0.32, 6);
+    armGeo.translate(0, -0.16, 0); // pivot at shoulder
+    const leftArm = new THREE.Mesh(armGeo, furMat);
+    leftArm.position.set(-0.3, 0.95, 0.0);
+    const rightArm = new THREE.Mesh(armGeo, furMat);
+    rightArm.position.set(0.3, 0.95, 0.0);
+
+    const pawGeo = new THREE.SphereGeometry(0.055, 6, 6);
+    const leftArmPaw = new THREE.Mesh(pawGeo, bellyMat);
+    leftArmPaw.position.set(0, -0.32, 0);
+    leftArm.add(leftArmPaw);
+    const rightArmPaw = new THREE.Mesh(pawGeo, bellyMat);
+    rightArmPaw.position.set(0, -0.32, 0);
+    rightArm.add(rightArmPaw);
+
+    group.add(leftArm);
+    group.add(rightArm);
+
+    // Legs (left and right hip pivots)
+    const legGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.28, 6);
+    legGeo.translate(0, -0.14, 0); // pivot at hip
+    const leftLeg = new THREE.Mesh(legGeo, furMat);
+    leftLeg.position.set(-0.15, 0.32, 0.04);
+    const rightLeg = new THREE.Mesh(legGeo, furMat);
+    rightLeg.position.set(0.16, 0.32, 0.04);
+
     const pawColor = (colorIndex % 3 === 0) ? palette.belly : palette.fur;
     const pawMat = new THREE.MeshStandardMaterial({ color: pawColor, roughness: 0.85 });
-    for (const side of [-1, 1]) {
-        const paw = new THREE.Mesh(new THREE.SphereGeometry(0.065, 6, 6), pawMat);
-        paw.position.set(side * 0.16, 0.32, 0.08);
-        group.add(paw);
-    }
+    const leftLegPaw = new THREE.Mesh(pawGeo, pawMat);
+    leftLegPaw.position.set(0, -0.28, 0.02);
+    leftLeg.add(leftLegPaw);
+    const rightLegPaw = new THREE.Mesh(pawGeo, pawMat);
+    rightLegPaw.position.set(0, -0.28, 0.02);
+    rightLeg.add(rightLegPaw);
+
+    group.add(leftLeg);
+    group.add(rightLeg);
+
+    group.userData = {
+        type: 'customer',
+        colorIndex,
+        leftArm,
+        rightArm,
+        leftLeg,
+        rightLeg,
+        tailPivot,
+        ears,
+        body,
+        head
+    };
 
     return group;
 }
@@ -886,16 +1007,34 @@ export function createPlateModel(itemId = 'prato_dia') {
         food.position.y = 1.45;
         food.scale.set(1, 0.6, 1);
     } else if (itemId === 'massa') {
-        // Lasanha de Atum - Orange layers
-        food = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.15, 0.25),
-            new THREE.MeshStandardMaterial({ color: 0xE8833A, roughness: 0.8 }));
-        food.position.y = 1.47;
+        // Lasanha de Atum - Orange layers with herb sprinkles
+        const pastaGroup = new THREE.Group();
+        const lasagna = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.12, 0.24), new THREE.MeshStandardMaterial({ color: 0xE8833A, roughness: 0.8 }));
+        lasagna.position.y = 1.44;
+        pastaGroup.add(lasagna);
+        const herbMat = new THREE.MeshStandardMaterial({ color: 0x2E7D32, roughness: 0.9 });
+        for (let i = 0; i < 4; i++) {
+            const herb = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.015, 0.015), herbMat);
+            herb.position.set((Math.random() - 0.5) * 0.16, 1.51, (Math.random() - 0.5) * 0.16);
+            herb.rotation.set(Math.random(), Math.random(), Math.random());
+            pastaGroup.add(herb);
+        }
+        food = pastaGroup;
     } else if (itemId === 'file') {
-        // Sashimi - Pink oval slice
-        food = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.05, 12),
-            new THREE.MeshStandardMaterial({ color: 0xFF9E9E, roughness: 0.4 }));
-        food.scale.set(1, 1, 0.5);
-        food.position.y = 1.43;
+        // Sashimi Fresco - Cute pink fish model
+        const fishGroup = new THREE.Group();
+        const fishBody = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), new THREE.MeshStandardMaterial({ color: 0xFF9E9E, roughness: 0.4 }));
+        fishBody.scale.set(1.8, 0.7, 0.4);
+        fishBody.position.y = 1.45;
+        fishGroup.add(fishBody);
+        const fishTail = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.1, 4), new THREE.MeshStandardMaterial({ color: 0xFF9E9E, roughness: 0.4 }));
+        fishTail.position.set(-0.16, 1.45, 0);
+        fishTail.rotation.z = Math.PI / 2;
+        fishGroup.add(fishTail);
+        const fishEye = new THREE.Mesh(new THREE.SphereGeometry(0.012, 4, 4), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+        fishEye.position.set(0.08, 1.47, 0.03);
+        fishGroup.add(fishEye);
+        food = fishGroup;
     } else if (itemId === 'sobremesa') {
         // Sachê de Carne - Dark meat mound
         food = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8),
@@ -903,10 +1042,28 @@ export function createPlateModel(itemId = 'prato_dia') {
         food.position.y = 1.46;
         food.scale.y = 0.5;
     } else if (itemId === 'salada') {
-        // Grama de Gato - Green blades
-        food = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.2, 8),
-            new THREE.MeshStandardMaterial({ color: 0x8ED9A6, roughness: 0.8 }));
-        food.position.y = 1.48;
+        // Grama de Gato - Green grass with tomatoes and cheese croutons
+        const salGroup = new THREE.Group();
+        const baseSalad = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.18, 8), new THREE.MeshStandardMaterial({ color: 0x4CAF50, roughness: 0.8 }));
+        baseSalad.position.y = 1.46;
+        salGroup.add(baseSalad);
+        const tomatoMat = new THREE.MeshStandardMaterial({ color: 0xE53935, roughness: 0.5 });
+        const tomatoGeo = new THREE.BoxGeometry(0.04, 0.04, 0.04);
+        for (let i = 0; i < 3; i++) {
+            const angle = (i * Math.PI * 2) / 3;
+            const tomato = new THREE.Mesh(tomatoGeo, tomatoMat);
+            tomato.position.set(Math.cos(angle) * 0.08, 1.48, Math.sin(angle) * 0.08);
+            salGroup.add(tomato);
+        }
+        const croutonMat = new THREE.MeshStandardMaterial({ color: 0xFFD54F, roughness: 0.9 });
+        const croutonGeo = new THREE.SphereGeometry(0.02, 4, 4);
+        for (let i = 0; i < 3; i++) {
+            const angle = (i * Math.PI * 2) / 3 + 0.5;
+            const crouton = new THREE.Mesh(croutonGeo, croutonMat);
+            crouton.position.set(Math.cos(angle) * 0.08, 1.46, Math.sin(angle) * 0.08);
+            salGroup.add(crouton);
+        }
+        food = salGroup;
     } else {
         // Fallback generic food
         food = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8),
@@ -1087,6 +1244,24 @@ export function createDrinkModel(itemId = 'agua') {
     liquid.position.y = 1.53;
     group.add(liquid);
 
+    // Add a straw (Cylinder)
+    const strawGeo = new THREE.CylinderGeometry(0.01, 0.01, 0.32, 4);
+    strawGeo.translate(0, 0.16, 0); // pivot at base
+    const straw = new THREE.Mesh(strawGeo, new THREE.MeshStandardMaterial({ color: 0xE53935, roughness: 0.5 })); // Red straw
+    straw.position.set(0.04, 1.54, 0.04);
+    straw.rotation.set(0.2, 0, -0.2); // diagonal
+    group.add(straw);
+
+    // Add a lemon slice on the glass rim
+    if (itemId === 'cocktail' || itemId === 'cerveja') {
+        const lemonGeo = new THREE.CylinderGeometry(0.055, 0.055, 0.02, 8);
+        const lemon = new THREE.Mesh(lemonGeo, new THREE.MeshStandardMaterial({ color: 0xFFEB3B, roughness: 0.5 })); // Yellow lemon
+        lemon.position.set(-0.10, 1.67, 0);
+        lemon.rotation.z = Math.PI / 2;
+        lemon.rotation.y = 0.5;
+        group.add(lemon);
+    }
+
     return group;
 }
 
@@ -1119,4 +1294,124 @@ export function updateCameraShake(dt, camera, controls) {
             controls.target.z += shakeZ * 0.4;
         }
     }
+}
+
+// ---------- MODEL ANIMATION ENGINE ----------
+export function updateModelAnimations(dt, model, state, speedMultiplier = 1.0) {
+    if (!model || !model.userData) return;
+
+    if (model.userData.animTime === undefined) model.userData.animTime = 0;
+    const walkSpeed = 12 * speedMultiplier;
+    const idleSpeed = 3;
+    const isWalking = state === 'walking';
+    const isCarrying = state === 'carrying';
+    const isEating  = state === 'eating';
+
+    model.userData.animTime += dt * (isWalking ? walkSpeed : idleSpeed);
+    const time = model.userData.animTime;
+    const data  = model.userData;
+
+    // ---- Restore base positions each frame ----
+    const baseBodyY = (data.type === 'waiter') ? 0.8 : 0.75;
+    const baseHeadY = (data.type === 'waiter') ? 1.52 : 1.42;
+    if (data.body) {
+        data.body.position.y = baseBodyY;
+        data.body.scale.set(1, 1, 1);
+        data.body.rotation.set(0, 0, 0);
+    }
+    if (data.head) {
+        data.head.position.y = baseHeadY;
+        data.head.position.z = 0;
+        data.head.rotation.set(0, 0, 0);
+    }
+    if (data.leftLeg)  data.leftLeg.rotation.set(0, 0, 0);
+    if (data.rightLeg) data.rightLeg.rotation.set(0, 0, 0);
+    if (data.leftArm)  data.leftArm.rotation.set(0, 0, 0);
+    if (data.rightArm) data.rightArm.rotation.set(0, 0, 0);
+    if (data.tailPivot) data.tailPivot.rotation.set(-0.6, 0, 0);
+
+    // ---- State-specific animations ----
+    if (isWalking || isCarrying) {
+        // Body bob
+        const bob = Math.abs(Math.sin(time)) * 0.07;
+        if (data.body) data.body.position.y += bob;
+        if (data.head) data.head.position.y += bob;
+
+        // Leg swing
+        const legSwing = Math.sin(time) * 0.6;
+        if (data.leftLeg)  data.leftLeg.rotation.x  =  legSwing;
+        if (data.rightLeg) data.rightLeg.rotation.x = -legSwing;
+
+        // Arm swing / carrying pose
+        if (isCarrying) {
+            if (data.leftArm)  { data.leftArm.rotation.x  = -1.1; data.leftArm.rotation.y  =  0.22; }
+            if (data.rightArm) { data.rightArm.rotation.x = -1.1; data.rightArm.rotation.y = -0.22; }
+        } else {
+            const armSwing = Math.sin(time) * 0.4;
+            if (data.leftArm)  data.leftArm.rotation.x  = -armSwing;
+            if (data.rightArm) data.rightArm.rotation.x =  armSwing;
+        }
+
+        // Forward lean (extra when dashing)
+        const tilt = speedMultiplier > 1.2 ? 0.28 : 0.14;
+        if (data.body) data.body.rotation.x = tilt;
+        if (data.head) data.head.rotation.x = -tilt * 0.5;
+
+        // Tail wag
+        if (data.tailPivot) data.tailPivot.rotation.y = Math.sin(time * 0.9) * 0.45;
+
+        // Bell pendulum
+        if (data.bellPivot) data.bellPivot.rotation.x = Math.sin(time) * 0.3;
+
+    } else if (isEating) {
+        // Eating head-bob toward plate
+        const eatBob = Math.abs(Math.sin(time * 1.6)) * 0.11;
+        if (data.head) {
+            data.head.position.y -= eatBob;
+            data.head.position.z += eatBob * 0.6;
+            data.head.rotation.x = eatBob * 1.4;
+        }
+        // Circular happy tail
+        if (data.tailPivot) {
+            data.tailPivot.rotation.y = Math.sin(time * 2.2) * 0.5;
+            data.tailPivot.rotation.z = Math.cos(time * 2.2) * 0.25;
+        }
+        // Arms reach forward
+        if (data.leftArm)  data.leftArm.rotation.x  = -0.6;
+        if (data.rightArm) data.rightArm.rotation.x = -0.6;
+
+    } else {
+        // ---- Idle breathing ----
+        const breathe = Math.sin(time * 0.8) * 0.016;
+        if (data.body) data.body.scale.set(1 + breathe, 1 - breathe, 1 + breathe);
+
+        // Slow tail sway
+        if (data.tailPivot) data.tailPivot.rotation.y = Math.sin(time * 0.4) * 0.25;
+
+        // Occasional random ear twitch
+        if (data.ears && data.ears.length >= 2) {
+            const cycle = Math.sin(time * 0.25);
+            if (cycle > 0.9) {
+                data.ears[0].rotation.x = Math.sin(time * 12) * 0.14;
+                data.ears[1].rotation.x = 0;
+            } else if (cycle < -0.9) {
+                data.ears[1].rotation.x = Math.sin(time * 12) * 0.14;
+                data.ears[0].rotation.x = 0;
+            } else {
+                data.ears[0].rotation.x = 0;
+                data.ears[1].rotation.x = 0;
+            }
+        }
+    }
+}
+
+// ---------- STEAM PARTICLE SOURCES ----------
+export function getSteamSources() {
+    const halfRoom = 8.5;
+    const barX = halfRoom - 1.5;
+    const barZStart = -1.5;
+    return [
+        new THREE.Vector3(0, 0.75, -halfRoom + 1.6),     // Kitchen oven
+        new THREE.Vector3(barX + 0.2, 1.8, barZStart + 4.0) // Bar blender
+    ];
 }
