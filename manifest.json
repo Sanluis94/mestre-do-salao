@@ -1,0 +1,20 @@
+{
+    "name": "Cat Cafe — Simulador de Gestão",
+    "short_name": "Cat Cafe",
+    "description": "Gerencie seu restaurante de gatos! Simule atendimento, cozinha e muito mais.",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "orientation": "any",
+    "background_color": "#FFE8D6",
+    "theme_color": "#FF9254",
+    "icons": [
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐱</text></svg>",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": ["games", "entertainment"],
+    "lang": "pt-BR"
+}

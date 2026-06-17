@@ -1089,3 +1089,34 @@ export function createDrinkModel(itemId = 'agua') {
 
     return group;
 }
+
+// ---------- CAMERA JUICE (SCREEN SHAKE) ----------
+let shakeIntensity = 0;
+let shakeDuration = 0;
+
+export function triggerScreenShake(intensity = 0.08, duration = 0.25) {
+    shakeIntensity = intensity;
+    shakeDuration = duration;
+}
+
+export function updateCameraShake(dt, camera, controls) {
+    if (shakeDuration > 0) {
+        shakeDuration -= dt;
+        
+        // Random shake offset
+        const shakeX = (Math.random() - 0.5) * shakeIntensity;
+        const shakeY = (Math.random() - 0.5) * shakeIntensity;
+        const shakeZ = (Math.random() - 0.5) * shakeIntensity;
+        
+        // Add relative offset to camera position
+        camera.position.x += shakeX;
+        camera.position.y += shakeY;
+        camera.position.z += shakeZ;
+        
+        // Jolt the controls target slightly
+        if (controls) {
+            controls.target.x += shakeX * 0.4;
+            controls.target.z += shakeZ * 0.4;
+        }
+    }
+}

@@ -3,14 +3,15 @@
 // Full Monetization: Tabs, Gacha, IAP, Skins, VIP (with Defensive programming checks)
 // ==========================================
 import * as THREE from 'three';
-import { initScene, createRestaurant, createWaiterModel, createPlateModel, createDrinkModel } from './scene.js?v=10';
-import { Game, shopState, saveProgress, getShopPrices, loadProgress } from './gameplay.js?v=10';
+import { initScene, createRestaurant, createWaiterModel, createPlateModel, createDrinkModel, updateCameraShake } from './scene.js?v=12';
+import { Game, shopState, saveProgress, getShopPrices, loadProgress } from './gameplay.js?v=12';
 import {
     initUI, initParticles, animateParticles,
     showScreen, hideLevelComplete, hideGameOver,
     showPause, hidePause, showMessage, showSimulatedAd,
     playSound
-} from './ui.js?v=10';
+} from './ui.js?v=12';
+import { publisherSDK } from './publisher.js?v=12';
 
 // ---------- STATE ----------
 let sceneData = null;
@@ -28,9 +29,52 @@ const SKIN_DATA = {
     ouro:       { emoji: '👑', name: 'Gato de Ouro', desc: 'Corpo dourado e coroa imperial' },
 };
 
+// ---------- HAPTIC FEEDBACK ----------
+function vibrate(pattern) {
+    try { if (navigator.vibrate) navigator.vibrate(pattern); } catch(e) { /* not supported */ }
+}
+
 // ---------- INITIALIZATION ----------
 function init() {
+    // Animate loading bar while fonts/Three.js load
+    const loadingScreen = document.getElementById('loading-screen');
+    const loadingBar = document.getElementById('loading-bar');
+    if (loadingBar) {
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress = Math.min(progress + Math.random() * 15, 90);
+            loadingBar.style.width = progress + '%';
+        }, 200);
+        // Hide loading screen when page is fully loaded
+        const hideLoading = () => {
+            clearInterval(interval);
+            if (loadingBar) loadingBar.style.width = '100%';
+            setTimeout(() => {
+                if (loadingScreen) loadingScreen.classList.add('hidden');
+            }, 400);
+        };
+        if (document.readyState === 'complete') {
+            hideLoading();
+        } else {
+            window.addEventListener('load', hideLoading, { once: true });
+            // Fallback: hide after 4s regardless
+            setTimeout(hideLoading, 4000);
+        }
+    } else if (loadingScreen) {
+        loadingScreen.classList.add('hidden');
+    }
+
     initUI();
+
+    // Expose globals for publisher simulator fallback
+    window.showSimulatedAd = showSimulatedAd;
+    window.openIAP = openIAP;
+
+    // Initialize Publisher SDK
+    publisherSDK.init(() => {
+        console.log('Publisher SDK initialized.');
+    });
+
     initParticles();
     setupMenuListeners();
     startMenuLoop();
@@ -78,7 +122,7 @@ function setupMenuListeners() {
     const btnAdDouble = document.getElementById('btn-ad-double');
     if (btnAdDouble) {
         btnAdDouble.addEventListener('click', (e) => {
-            showSimulatedAd(() => {
+            publisherSDK.showRewardAd(() => {
                 if (game) {
                     const earned = game.levelMoney;
                     game.state.money += earned; 
@@ -103,7 +147,7 @@ function setupMenuListeners() {
     const btnAdRevive = document.getElementById('btn-ad-revive');
     if (btnAdRevive) {
         btnAdRevive.addEventListener('click', (e) => {
-            showSimulatedAd(() => {
+            publisherSDK.showRewardAd(() => {
                 if (game) {
                     game.state.timeLeft += 30;
                     game.state.satisfaction = 100;
@@ -121,6 +165,7 @@ function setupMenuListeners() {
     if (btnRetry) {
         btnRetry.addEventListener('click', () => {
             hideGameOver();
+            vibrate([80, 40, 80]);
             if (game) game.restart();
         });
     }
@@ -388,7 +433,7 @@ function setupGachaSystem() {
     if (btnAd) {
         btnAd.addEventListener('click', () => {
             if (gachaRolling) return;
-            showSimulatedAd(() => {
+            publisherSDK.showRewardAd(() => {
                 rollGacha();
             });
         });
@@ -479,19 +524,28 @@ function rollGacha() {
 // IN-APP PURCHASE (IAP) SIMULATION
 // ==========================================
 let iapPending = null;
+let iapCallback = null;
 
 function setupIAPSystem() {
     const btnGems30 = document.getElementById('btn-buy-gems-30');
     if (btnGems30) {
         btnGems30.addEventListener('click', () => {
-            openIAP({ type: 'gems', name: '💎 30 Gemas Estelares', price: 'R$ 4,90', gems: 30, vip: false });
+            publisherSDK.purchaseGems('gems_30', 'R$ 4,90', 30, () => {
+                const shopGemsBal = document.getElementById('shop-gems-balance');
+                if (shopGemsBal) shopGemsBal.textContent = shopState.gems;
+                updateVIPButton();
+            });
         });
     }
 
     const btnGems80 = document.getElementById('btn-buy-gems-80');
     if (btnGems80) {
         btnGems80.addEventListener('click', () => {
-            openIAP({ type: 'gems', name: '💎 80 Gemas Estelares', price: 'R$ 9,90', gems: 80, vip: false });
+            publisherSDK.purchaseGems('gems_80', 'R$ 9,90', 80, () => {
+                const shopGemsBal = document.getElementById('shop-gems-balance');
+                if (shopGemsBal) shopGemsBal.textContent = shopState.gems;
+                updateVIPButton();
+            });
         });
     }
 
@@ -505,7 +559,11 @@ function setupIAPSystem() {
             if (shopState.gems >= 30) {
                 openIAP({ type: 'vip-gems', name: '👑 Clube VIP Permanente', price: '30 Gemas', gems: -30, vip: true });
             } else {
-                openIAP({ type: 'vip-money', name: '👑 Clube VIP Permanente', price: 'R$ 19,90', gems: 0, vip: true });
+                publisherSDK.purchaseVIP(() => {
+                    const shopGemsBal = document.getElementById('shop-gems-balance');
+                    if (shopGemsBal) shopGemsBal.textContent = shopState.gems;
+                    updateVIPButton();
+                });
             }
         });
     }
@@ -527,8 +585,9 @@ function setupIAPSystem() {
     }
 }
 
-function openIAP(config) {
+function openIAP(config, callback) {
     iapPending = config;
+    iapCallback = callback;
 
     const itemName = document.getElementById('iap-item-name');
     if (itemName) itemName.textContent = config.name;
@@ -602,6 +661,10 @@ function processIAP() {
             
             updateShopButtons(money);
             updateVIPButton();
+            if (iapCallback) {
+                iapCallback();
+                iapCallback = null;
+            }
             iapPending = null;
             showMessage('🎉 Compra realizada com sucesso!', 3000);
         }, 1500);
@@ -631,7 +694,7 @@ function setupAdGemsButton() {
     const btn = document.getElementById('btn-ad-gem');
     if (!btn) return;
     btn.addEventListener('click', () => {
-        showSimulatedAd(() => {
+        publisherSDK.showRewardAd(() => {
             shopState.gems += 5;
             if (game) game.state.gems = shopState.gems;
             const shopGemsBal = document.getElementById('shop-gems-balance');
@@ -672,6 +735,7 @@ function startGame() {
     }
     game.start(game.state.level || 1);
     clock.start();
+    publisherSDK.gameplayStart();
 
     gameLoop();
 }
@@ -683,6 +747,7 @@ function backToMenu() {
         game.clearAll();
         game.state.running = false;
     }
+    publisherSDK.gameplayStop();
     showScreen('menu-screen');
     initParticles();
     startMenuLoop();
@@ -700,6 +765,7 @@ function gameLoop() {
     }
 
     if (sceneData) {
+        updateCameraShake(dt, sceneData.camera, sceneData.controls);
         sceneData.controls.update();
         sceneData.renderer.render(sceneData.scene, sceneData.camera);
     }

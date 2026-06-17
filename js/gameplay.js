@@ -5,12 +5,13 @@ import * as THREE from 'three';
 import {
     createWaiterModel, createCustomerModel, createPlateModel,
     createDirtyTableIndicator, createPatienceBar, updatePatienceBar,
-    updateKitchenReady, updateBarReady, createDrinkModel
-} from './scene.js?v=10';
+    updateKitchenReady, updateBarReady, createDrinkModel,
+    triggerScreenShake
+} from './scene.js?v=12';
 import {
     updateHUD, updateOrders, showMessage, showLevelComplete, showGameOver,
     showFloatingMoney, updateCombo, updateCarrying, playSound
-} from './ui.js?v=10';
+} from './ui.js?v=12';
 
 // ---------- FOOD MENU (prepared in Kitchen) ----------
 const FOOD_MENU = [
@@ -42,6 +43,24 @@ export const shopState = {
     ownedSkins: ['default'],
     vipActive: false,
 };
+
+// ---------- HIGH SCORE ----------
+export let highScore = 0;
+
+export function saveHighScore(score) {
+    if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('catCafeHighScore', String(score));
+        return true; // new record!
+    }
+    return false;
+}
+
+export function loadHighScore() {
+    const saved = localStorage.getItem('catCafeHighScore');
+    highScore = saved ? parseInt(saved, 10) : 0;
+    return highScore;
+}
 
 export function saveProgress(money) {
     localStorage.setItem('catCafeSave', JSON.stringify({ shopState, money }));
@@ -432,6 +451,15 @@ export class Game {
         this.waiterPath = []; // A* path waypoints
         this.waiterPathIdx = 0;
 
+        // Dash mechanics
+        this.dashActive = false;
+        this.dashTimer = 0;
+        this.dashCooldown = 0;
+        this.dashCooldownMax = 1.5;
+        this.dashDuration = 0.4;
+        this.dashSpeedMultiplier = 1.6;
+        this.dashParticles = [];
+
         // Navigation grid
         this.navGrid = buildNavGrid();
 
@@ -530,9 +558,49 @@ export class Game {
         return LEVELS[idx];
     }
 
-    // ---------- UPDATE (called each frame) ----------
     update(dt) {
         if (!this.state.running || this.state.paused) return;
+
+        // Update dash active state & emit particles
+        if (this.dashActive) {
+            this.dashTimer -= dt;
+            if (this.dashTimer <= 0) {
+                this.dashActive = false;
+            }
+            if (this.waiter) {
+                this.spawnDashParticles(this.waiter.position);
+            }
+        }
+
+        // Update dash cooldown & progress HUD
+        if (this.dashCooldown > 0) {
+            this.dashCooldown -= dt;
+            const dashInd = document.getElementById('dash-indicator');
+            const dashProg = document.getElementById('dash-progress');
+            if (dashInd && dashProg) {
+                dashInd.classList.remove('hidden');
+                const percent = Math.max(0, (this.dashCooldown / this.dashCooldownMax) * 100);
+                dashProg.style.width = `${percent}%`;
+                if (this.dashCooldown <= 0) {
+                    dashInd.classList.add('hidden');
+                }
+            }
+        }
+
+        // Update dash 3D particles in scene
+        if (this.dashParticles) {
+            for (let i = this.dashParticles.length - 1; i >= 0; i--) {
+                const p = this.dashParticles[i];
+                p.timer -= dt;
+                if (p.timer <= 0) {
+                    this.scene.remove(p.mesh);
+                    this.dashParticles.splice(i, 1);
+                } else {
+                    p.mesh.position.addScaledVector(p.velocity, dt);
+                    p.mesh.scale.multiplyScalar(0.92);
+                }
+            }
+        }
 
         const cfg = this.getLevelConfig();
 
@@ -559,10 +627,13 @@ export class Game {
         if (this.state.satisfaction <= 0) {
             this.state.satisfaction = 0;
             this.state.running = false;
+            const isNewRecord = saveHighScore(this.state.score);
             showGameOver({
                 level: this.state.level,
                 score: this.state.score,
                 money: this.state.money,
+                highScore: loadHighScore(),
+                isNewRecord,
             });
             return;
         }
@@ -571,11 +642,13 @@ export class Game {
         if (this.state.timeLeft <= 0 || this.isLevelComplete()) {
             this.state.timeLeft = Math.max(0, this.state.timeLeft);
             this.state.running = false;
+            const isNewRecord = saveHighScore(this.state.score);
             showLevelComplete({
                 served: this.customersServed,
                 score: this.state.score,
                 money: this.levelMoney,
                 satisfaction: this.state.satisfaction,
+                isNewRecord,
             });
             return;
         }
@@ -600,6 +673,39 @@ export class Game {
         this.state.gems = shopState.gems;
         updateHUD(this.state);
         updateOrders(this.orders.filter(o => o.state !== 'done'));
+    }
+
+    triggerDash() {
+        if (this.dashCooldown > 0 || this.dashActive) return;
+        this.dashActive = true;
+        this.dashTimer = this.dashDuration;
+        this.dashCooldown = this.dashCooldownMax;
+        playSound('dash');
+        try { if (navigator.vibrate) navigator.vibrate(60); } catch (e) {}
+        triggerScreenShake(0.04, 0.15);
+    }
+
+    spawnDashParticles(pos) {
+        const geom = new THREE.SphereGeometry(0.08, 4, 4);
+        const mat = new THREE.MeshBasicMaterial({
+            color: 0xFFEB3B,
+            transparent: true,
+            opacity: 0.6
+        });
+        const mesh = new THREE.Mesh(geom, mat);
+        
+        mesh.position.copy(pos);
+        mesh.position.y = 0.1;
+        mesh.position.x += (Math.random() - 0.5) * 0.2;
+        mesh.position.z += (Math.random() - 0.5) * 0.2;
+        
+        this.scene.add(mesh);
+        
+        this.dashParticles.push({
+            mesh,
+            velocity: new THREE.Vector3((Math.random() - 0.5) * 0.5, 0, (Math.random() - 0.5) * 0.5),
+            timer: 0.3
+        });
     }
 
     isLevelComplete() {
@@ -923,8 +1029,12 @@ export class Game {
             return;
         }
 
-        // Move toward current waypoint
-        dir.normalize().multiplyScalar(Math.min(dt * this.waiterSpeed, dist));
+        // Move toward current waypoint with dash speed boost
+        let speed = this.waiterSpeed;
+        if (this.dashActive) {
+            speed *= this.dashSpeedMultiplier;
+        }
+        dir.normalize().multiplyScalar(Math.min(dt * speed, dist));
         this.waiter.position.add(dir);
 
         // Enforce collision so waiter slides around tables (skip near final approach)
@@ -1253,7 +1363,11 @@ export class Game {
     handleClick(intersectedObjects) {
         if (!this.state.running || this.state.paused) return;
         if (this.waiterState === 'walking') {
-            showMessage('⏳ Garçom está se movendo...', 1500);
+            if (this.dashCooldown <= 0 && !this.dashActive) {
+                this.triggerDash();
+            } else if (!this.dashActive) {
+                showMessage('⏳ Garçom está se movendo...', 1500);
+            }
             return;
         }
 

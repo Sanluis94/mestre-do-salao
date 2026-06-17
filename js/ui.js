@@ -1,8 +1,4 @@
-// ==========================================
-// ui.js — HUD Updates, Particles, Screen Management
-// Enhanced with: floating money, combos, progress bars,
-// carrying indicator, satisfaction warning, sound effects
-// ==========================================
+import { publisherSDK } from './publisher.js?v=12';
 
 // ---------- DOM REFERENCES ----------
 const dom = {};
@@ -29,11 +25,19 @@ export function initUI() {
 
     // Initialize sound system
     initSounds();
+
+    // Sound button toggle listener
+    const btnSound = document.getElementById('btn-sound');
+    if (btnSound) {
+        btnSound.addEventListener('click', toggleMute);
+    }
 }
 
-// ---------- SOUND EFFECTS (Web Audio API) ----------
+// ---------- SOUND EFFECTS & BACKGROUND MUSIC (Web Audio API) ----------
 let audioCtx = null;
 const sounds = {};
+export let isMuted = false;
+let bgMusicInterval = null;
 
 function initSounds() {
     try {
@@ -43,14 +47,31 @@ function initSounds() {
     }
 }
 
+export function toggleMute() {
+    isMuted = !isMuted;
+    const btnSound = document.getElementById('btn-sound');
+    if (btnSound) {
+        btnSound.textContent = isMuted ? '🔇' : '🔊';
+    }
+    if (isMuted) {
+        stopBackgroundMusic();
+    } else {
+        startBackgroundMusic();
+    }
+}
+
 function ensureAudioCtx() {
     if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume();
+        audioCtx.resume().then(() => {
+            if (!isMuted) startBackgroundMusic();
+        });
+    } else if (audioCtx && audioCtx.state === 'running' && !isMuted && !bgMusicInterval) {
+        startBackgroundMusic();
     }
 }
 
 function playTone(freq, duration = 0.15, type = 'sine', volume = 0.15) {
-    if (!audioCtx) return;
+    if (!audioCtx || isMuted) return;
     ensureAudioCtx();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
@@ -64,7 +85,52 @@ function playTone(freq, duration = 0.15, type = 'sine', volume = 0.15) {
     osc.stop(audioCtx.currentTime + duration);
 }
 
+function startBackgroundMusic() {
+    if (!audioCtx || isMuted) return;
+    if (bgMusicInterval) return;
+
+    let step = 0;
+    // Cute pentatonic scale notes (G major) for ambient Cat Cafe lofi
+    const melody = [392.00, 440.00, 493.88, 587.33, 659.25, 587.33, 493.88, 440.00];
+
+    bgMusicInterval = setInterval(() => {
+        if (audioCtx && audioCtx.state === 'running' && !isMuted) {
+            const note = melody[step % melody.length];
+            // Play a soft bell-like tone in the background
+            playTone(note, 0.8, 'sine', 0.02);
+
+            // Occasional harmony note
+            if (step % 4 === 0) {
+                setTimeout(() => {
+                    playTone(note * 1.5, 0.5, 'sine', 0.01);
+                }, 200);
+            }
+            step++;
+        }
+    }, 1200);
+}
+
+function stopBackgroundMusic() {
+    if (bgMusicInterval) {
+        clearInterval(bgMusicInterval);
+        bgMusicInterval = null;
+    }
+}
+
 export function playSound(name) {
+    const vibrate = (pattern) => {
+        try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) {}
+    };
+
+    switch (name) {
+        case 'click':    vibrate(40); break;
+        case 'money':    vibrate(60); break;
+        case 'levelup':  vibrate([100, 50, 100]); break;
+        case 'gameover': vibrate([200, 100, 200]); break;
+        case 'dash':     vibrate(60); break;
+        case 'angry':    vibrate(150); break;
+    }
+
     switch (name) {
         case 'click':      playTone(800, 0.08, 'sine', 0.1); break;
         case 'seat':        playTone(523, 0.12, 'sine', 0.12); setTimeout(() => playTone(659, 0.12, 'sine', 0.12), 100); break;
@@ -77,6 +143,7 @@ export function playSound(name) {
         case 'clean':       playTone(400, 0.08, 'sine', 0.08); setTimeout(() => playTone(500, 0.08, 'sine', 0.08), 60); break;
         case 'levelup':     [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => playTone(f, 0.2, 'sine', 0.15), i * 120)); break;
         case 'gameover':    playTone(300, 0.4, 'sawtooth', 0.12); setTimeout(() => playTone(200, 0.5, 'sawtooth', 0.1), 300); break;
+        case 'dash':        playTone(600, 0.1, 'triangle', 0.12); setTimeout(() => playTone(900, 0.15, 'triangle', 0.1), 40); break;
     }
 }
 
@@ -265,6 +332,12 @@ export function showLevelComplete(stats) {
     if (elMoney) elMoney.textContent = `R$ ${stats.money}`;
     const elSat = document.getElementById('result-satisfaction');
     if (elSat) elSat.textContent = `${Math.round(stats.satisfaction)}%`;
+
+    // New record badge
+    const newRecBadge = document.getElementById('new-record-badge');
+    if (newRecBadge) {
+        newRecBadge.classList.toggle('hidden', !stats.isNewRecord);
+    }
     
     // Reset ad button visibility
     const adBtn = document.getElementById('btn-ad-double');
@@ -272,6 +345,7 @@ export function showLevelComplete(stats) {
 
     if (dom.levelComplete) dom.levelComplete.classList.remove('hidden');
     playSound('levelup');
+    publisherSDK.gameplayStop();
 }
 export function hideLevelComplete() { 
     if (dom.levelComplete) dom.levelComplete.classList.add('hidden'); 
@@ -285,12 +359,23 @@ export function showGameOver(stats) {
     const elMoney = document.getElementById('go-money');
     if (elMoney) elMoney.textContent = `R$ ${stats.money}`;
 
+    // High score display
+    const elHs = document.getElementById('go-highscore');
+    if (elHs) elHs.textContent = stats.highScore !== undefined ? stats.highScore : stats.score;
+
+    // New record badge
+    const goNewRec = document.getElementById('go-new-record-badge');
+    if (goNewRec) {
+        goNewRec.classList.toggle('hidden', !stats.isNewRecord);
+    }
+
     // Reset ad button visibility
     const adBtn = document.getElementById('btn-ad-revive');
     if (adBtn) adBtn.style.display = 'block';
 
     if (dom.gameOver) dom.gameOver.classList.remove('hidden');
     playSound('gameover');
+    publisherSDK.gameplayStop();
 }
 export function hideGameOver() { 
     if (dom.gameOver) dom.gameOver.classList.add('hidden'); 
