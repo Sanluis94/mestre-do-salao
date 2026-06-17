@@ -3,15 +3,15 @@
 // Full Monetization: Tabs, Gacha, IAP, Skins, VIP (with Defensive programming checks)
 // ==========================================
 import * as THREE from 'three';
-import { initScene, createRestaurant, createWaiterModel, createPlateModel, createDrinkModel, updateCameraShake } from './scene.js?v=15';
-import { Game, shopState, saveProgress, getShopPrices, loadProgress } from './gameplay.js?v=15';
+import { initScene, createRestaurant, createWaiterModel, createPlateModel, createDrinkModel, updateCameraShake } from './scene.js?v=16';
+import { Game, shopState, saveProgress, getShopPrices, loadProgress } from './gameplay.js?v=16';
 import {
     initUI, initParticles, animateParticles,
     showScreen, hideLevelComplete, hideGameOver,
     showPause, hidePause, showMessage, showSimulatedAd,
     playSound
-} from './ui.js?v=15';
-import { publisherSDK } from './publisher.js?v=15';
+} from './ui.js?v=16';
+import { publisherSDK } from './publisher.js?v=16';
 
 // ---------- STATE ----------
 let sceneData = null;

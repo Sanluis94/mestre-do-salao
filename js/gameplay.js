@@ -7,11 +7,11 @@ import {
     createDirtyTableIndicator, createPatienceBar, updatePatienceBar,
     updateKitchenReady, updateBarReady, createDrinkModel,
     triggerScreenShake, updateModelAnimations, getSteamSources
-} from './scene.js?v=15';
+} from './scene.js?v=16';
 import {
     updateHUD, updateOrders, showMessage, showLevelComplete, showGameOver,
     showFloatingMoney, updateCombo, updateCarrying, playSound
-} from './ui.js?v=15';
+} from './ui.js?v=16';
 
 // ---------- FOOD MENU (prepared in Kitchen) ----------
 const FOOD_MENU = [
@@ -880,15 +880,11 @@ export class Game {
                 updatePatienceBar(c.patienceBar, c.patience / c.maxPatience, this.camera);
             }
 
-            // Wait for order
-            if (c.state === 'waiting_order') {
+            // Rotate to face table when seated
+            if (['seated', 'ordering', 'waiting_food', 'eating'].includes(c.state)) {
                 const t = this.tables[c.tableIndex];
                 if (t) {
                     c.model.lookAt(t.position.x, c.model.position.y, t.position.z);
-                }
-                c.actionTimer -= dt;
-                if (c.actionTimer <= 0) {
-                    c.state = 'ordering';
                 }
             }
 
