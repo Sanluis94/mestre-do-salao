@@ -1,4 +1,4 @@
-import { publisherSDK } from './publisher.js?v=13';
+import { publisherSDK } from './publisher.js?v=14';
 
 // ---------- DOM REFERENCES ----------
 const dom = {};
@@ -469,3 +469,4 @@ export function animateParticles() {
         particlesCtx.fill();
     });
 }
+

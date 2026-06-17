@@ -7,11 +7,11 @@ import {
     createDirtyTableIndicator, createPatienceBar, updatePatienceBar,
     updateKitchenReady, updateBarReady, createDrinkModel,
     triggerScreenShake, updateModelAnimations, getSteamSources
-} from './scene.js?v=13';
+} from './scene.js?v=14';
 import {
     updateHUD, updateOrders, showMessage, showLevelComplete, showGameOver,
     showFloatingMoney, updateCombo, updateCarrying, playSound
-} from './ui.js?v=13';
+} from './ui.js?v=14';
 
 // ---------- FOOD MENU (prepared in Kitchen) ----------
 const FOOD_MENU = [
@@ -1573,3 +1573,4 @@ export class Game {
         this.state.paused = !this.state.paused;
     }
 }
+
