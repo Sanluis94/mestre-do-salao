@@ -7,11 +7,11 @@ import {
     createDirtyTableIndicator, createPatienceBar, updatePatienceBar,
     updateKitchenReady, updateBarReady, createDrinkModel,
     triggerScreenShake, updateModelAnimations, getSteamSources
-} from './scene.js?v=14';
+} from './scene.js?v=15';
 import {
     updateHUD, updateOrders, showMessage, showLevelComplete, showGameOver,
     showFloatingMoney, updateCombo, updateCarrying, playSound
-} from './ui.js?v=14';
+} from './ui.js?v=15';
 
 // ---------- FOOD MENU (prepared in Kitchen) ----------
 const FOOD_MENU = [

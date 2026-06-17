@@ -592,13 +592,13 @@ function createPainting(w, h, color) {
 
 // ---------- CAT CHARACTER MODELS ----------
 
-// Helper: build cat ears on a group at a given head Y position
-function addCatEars(group, headY, furMat, innerMat) {
+// Helper: build cat ears on a head mesh
+function addCatEars(head, furMat, innerMat) {
     const earGeo = new THREE.ConeGeometry(0.1, 0.22, 4);
     const ears = [];
     for (const side of [-1, 1]) {
         const earPivot = new THREE.Group();
-        earPivot.position.set(side * 0.14, headY + 0.2, 0);
+        earPivot.position.set(side * 0.14, 0.2, 0); // local relative to head center
         earPivot.rotation.z = side * -0.15;
         
         const ear = new THREE.Mesh(earGeo, furMat);
@@ -611,16 +611,16 @@ function addCatEars(group, headY, furMat, innerMat) {
         innerEar.position.set(0, 0.04, 0.02);
         earPivot.add(innerEar);
 
-        group.add(earPivot);
+        head.add(earPivot);
         ears.push(earPivot);
     }
     return ears;
 }
 
-// Helper: build cat tail
-function addCatTail(group, bodyY, furMat) {
+// Helper: build cat tail on a body mesh
+function addCatTail(body, furMat) {
     const tailPivot = new THREE.Group();
-    tailPivot.position.set(0, bodyY + 0.1, -0.22);
+    tailPivot.position.set(0, 0.1, -0.22); // Y = 0.1 is local to body center
     tailPivot.rotation.x = -0.6;
 
     // Tail base (tail1)
@@ -635,32 +635,32 @@ function addCatTail(group, bodyY, furMat) {
     tail2.rotation.x = -0.6;
     tailPivot.add(tail2);
 
-    group.add(tailPivot);
+    body.add(tailPivot);
     return tailPivot;
 }
 
-// Helper: build cat snout + whiskers
-function addCatFace(group, headY, noseMat) {
+// Helper: build cat snout + whiskers on a head mesh
+function addCatFace(head, noseMat) {
     // Snout (small rounded bump)
     const snout = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), new THREE.MeshStandardMaterial({ color: 0xFFF0E8, roughness: 0.8 }));
-    snout.position.set(0, headY - 0.04, 0.2);
+    snout.position.set(0, -0.04, 0.2);
     snout.scale.set(1, 0.7, 0.6);
-    group.add(snout);
+    head.add(snout);
     // Nose (tiny pink triangle)
     const nose = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.03, 3), noseMat);
-    nose.position.set(0, headY - 0.01, 0.24);
+    nose.position.set(0, -0.01, 0.24);
     nose.rotation.x = Math.PI;
-    group.add(nose);
+    head.add(nose);
     // Whiskers (thin cylinders)
     const whiskerMat = new THREE.MeshStandardMaterial({ color: 0xCCCCCC, roughness: 0.5 });
     const whiskerGeo = new THREE.CylinderGeometry(0.004, 0.004, 0.25, 4);
     for (const side of [-1, 1]) {
         for (const wy of [-0.02, 0.02]) {
             const whisker = new THREE.Mesh(whiskerGeo, whiskerMat);
-            whisker.position.set(side * 0.15, headY - 0.04 + wy, 0.2);
+            whisker.position.set(side * 0.15, -0.04 + wy, 0.2);
             whisker.rotation.z = side * 0.15 + wy * 2;
             whisker.rotation.y = side * 0.3;
-            group.add(whisker);
+            head.add(whisker);
         }
     }
     // Eyes (shiny dark spheres)
@@ -668,12 +668,12 @@ function addCatFace(group, headY, noseMat) {
     const eyeHighlight = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, emissive: 0xFFFFFF, emissiveIntensity: 0.5 });
     for (const side of [-1, 1]) {
         const eye = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 8), eyeMat);
-        eye.position.set(side * 0.09, headY + 0.04, 0.17);
-        group.add(eye);
+        eye.position.set(side * 0.09, 0.04, 0.17);
+        head.add(eye);
         // Eye highlight
         const highlight = new THREE.Mesh(new THREE.SphereGeometry(0.015, 6, 6), eyeHighlight);
-        highlight.position.set(side * 0.08, headY + 0.055, 0.21);
-        group.add(highlight);
+        highlight.position.set(side * 0.08, 0.055, 0.21);
+        head.add(highlight);
     }
 }
 
@@ -720,65 +720,65 @@ export function createWaiterModel(skin = 'default') {
     body.castShadow = true;
     group.add(body);
 
-    // Belly patch
+    // Belly patch (child of body)
     const belly = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.14, 0.6, 8), secondaryMat);
-    belly.position.set(0, 0.75, 0.1);
-    group.add(belly);
+    belly.position.set(0, -0.05, 0.1); // relative to body center
+    body.add(belly);
 
-    // Optional Apron
+    // Optional Apron (child of body)
     if (hasApron) {
         const apron = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.35, 0.04),
             new THREE.MeshStandardMaterial({ color: 0xFFF8F0, roughness: 0.5 }));
-        apron.position.set(0, 0.55, 0.22);
-        group.add(apron);
+        apron.position.set(0, -0.25, 0.22); // relative to body center
+        body.add(apron);
     } else if (skin === 'astronauta') {
-        // Space chest pad
+        // Space chest pad (child of body)
         const chestPad = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.24, 0.04),
             new THREE.MeshStandardMaterial({ color: 0x00E5FF, emissive: 0x00E5FF, emissiveIntensity: 0.4, roughness: 0.2 }));
-        chestPad.position.set(0, 0.75, 0.21);
-        group.add(chestPad);
+        chestPad.position.set(0, -0.05, 0.21); // relative to body center
+        body.add(chestPad);
     }
 
-    // Bow tie
+    // Bow tie (child of body)
     if (bowTieColor !== null) {
         const catBowMat = new THREE.MeshStandardMaterial({ color: bowTieColor, roughness: 0.6 });
         const bowCenter = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), catBowMat);
-        bowCenter.position.set(0, 1.18, 0.2);
-        group.add(bowCenter);
+        bowCenter.position.set(0, 0.38, 0.2); // relative to body center
+        body.add(bowCenter);
         for (const side of [-1, 1]) {
             const wing = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.1, 4), catBowMat);
-            wing.position.set(side * 0.07, 1.18, 0.2);
+            wing.position.set(side * 0.07, 0.38, 0.2); // relative to body center
             wing.rotation.z = side * Math.PI / 2;
-            group.add(wing);
+            body.add(wing);
         }
     }
 
-    // Head
+    // Head (child of body)
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 14), primaryMat);
-    head.position.y = 1.52;
+    head.position.set(0, 0.72, 0); // relative to body center
     head.castShadow = true;
-    group.add(head);
+    body.add(head);
 
-    // Face mask
+    // Face mask (child of head)
     const faceMask = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), secondaryMat);
-    faceMask.position.set(0, 1.48, 0.1);
+    faceMask.position.set(0, -0.04, 0.1); // relative to head center
     faceMask.scale.set(1, 0.9, 0.6);
-    group.add(faceMask);
+    head.add(faceMask);
 
-    // Ears, face, tail
-    const ears = addCatEars(group, 1.52, earMat, materials.catPink);
-    addCatFace(group, 1.52, materials.catPink);
-    const tailPivot = addCatTail(group, 0.8, tailMat);
+    // Ears, face, tail (attached to head and body)
+    const ears = addCatEars(head, earMat, materials.catPink); // attached to head
+    addCatFace(head, materials.catPink); // attached to head
+    const tailPivot = addCatTail(body, tailMat); // attached to body
 
-    // Arms (left and right shoulder pivots)
+    // Arms (left and right shoulder pivots) (children of body)
     const armGeo = new THREE.CylinderGeometry(0.045, 0.04, 0.35, 6);
     armGeo.translate(0, -0.175, 0); // pivot at shoulder
     const leftArm = new THREE.Mesh(armGeo, primaryMat);
-    leftArm.position.set(-0.32, 1.0, 0.0);
+    leftArm.position.set(-0.32, 0.2, 0.0); // relative to body center
     const rightArm = new THREE.Mesh(armGeo, primaryMat);
-    rightArm.position.set(0.32, 1.0, 0.0);
+    rightArm.position.set(0.32, 0.2, 0.0); // relative to body center
 
-    // Add paw spheres at the bottom of the arms
+    // Add paw spheres at the bottom of the arms (children of arms)
     const pawGeo = new THREE.SphereGeometry(0.06, 6, 6);
     const leftArmPaw = new THREE.Mesh(pawGeo, secondaryMat);
     leftArmPaw.position.set(0, -0.35, 0);
@@ -787,16 +787,16 @@ export function createWaiterModel(skin = 'default') {
     rightArmPaw.position.set(0, -0.35, 0);
     rightArm.add(rightArmPaw);
 
-    group.add(leftArm);
-    group.add(rightArm);
+    body.add(leftArm);
+    body.add(rightArm);
 
-    // Legs (left and right hip pivots)
+    // Legs (left and right hip pivots) (children of root group)
     const legGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 6);
     legGeo.translate(0, -0.15, 0); // pivot at hip
     const leftLeg = new THREE.Mesh(legGeo, primaryMat);
-    leftLeg.position.set(-0.16, 0.35, 0.05);
+    leftLeg.position.set(-0.16, 0.35, 0.05); // relative to root group
     const rightLeg = new THREE.Mesh(legGeo, primaryMat);
-    rightLeg.position.set(0.16, 0.35, 0.05);
+    rightLeg.position.set(0.16, 0.35, 0.05); // relative to root group
 
     // Add paw spheres at the bottom of the legs
     const leftLegPaw = new THREE.Mesh(pawGeo, secondaryMat);
@@ -809,14 +809,14 @@ export function createWaiterModel(skin = 'default') {
     group.add(leftLeg);
     group.add(rightLeg);
 
-    // Collar & Bell
+    // Collar & Bell (children of body)
     const collarMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.26, 0.05, 12),
         new THREE.MeshStandardMaterial({ color: 0xD32F2F, roughness: 0.6 })); // Red collar
-    collarMesh.position.set(0, 1.25, 0.02);
-    group.add(collarMesh);
+    collarMesh.position.set(0, 0.45, 0.02); // relative to body center
+    body.add(collarMesh);
 
     const bellPivot = new THREE.Group();
-    bellPivot.position.set(0, 1.25, 0.26); // hang at the front of collar
+    bellPivot.position.set(0, 0.45, 0.26); // relative to body center
     const bellChain = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.06, 4),
         new THREE.MeshStandardMaterial({ color: 0xFFD700, roughness: 0.2, metalness: 0.8 }));
     bellChain.position.y = -0.03;
@@ -825,54 +825,54 @@ export function createWaiterModel(skin = 'default') {
         new THREE.MeshStandardMaterial({ color: 0xFFD700, roughness: 0.1, metalness: 0.9 })); // Golden bell
     bellSphere.position.y = -0.07;
     bellPivot.add(bellSphere);
-    group.add(bellPivot);
+    body.add(bellPivot);
 
-    // --- Accessory overlays based on skin ---
+    // --- Accessory overlays based on skin (children of head) ---
     if (skin === 'chef') {
         // Chef Hat
         const hatBase = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.14, 12),
             new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.6 }));
-        hatBase.position.set(0, 1.8, 0.02);
+        hatBase.position.set(0, 0.28, 0.02); // relative to head center
         hatBase.rotation.x = 0.05;
-        group.add(hatBase);
+        head.add(hatBase);
 
         const hatPuff = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12),
             new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.6 }));
-        hatPuff.position.set(0, 1.9, 0.02);
+        hatPuff.position.set(0, 0.38, 0.02); // relative to head center
         hatPuff.scale.set(1, 0.7, 1);
-        group.add(hatPuff);
+        head.add(hatPuff);
     } else if (skin === 'astronauta') {
         // Space Helmet (glass bubble)
         const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.38, 16, 16),
             new THREE.MeshStandardMaterial({ color: 0xE0F7FA, roughness: 0.05, transparent: true, opacity: 0.3, metalness: 0.1 }));
-        helmet.position.set(0, 1.52, 0.04);
-        group.add(helmet);
+        helmet.position.set(0, 0, 0.04); // relative to head center
+        head.add(helmet);
 
-        // Space Helmet Collar
+        // Space Helmet Collar (child of body)
         const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.28, 0.06, 16),
             new THREE.MeshStandardMaterial({ color: 0xCFD8DC, roughness: 0.3, metalness: 0.4 }));
-        collar.position.set(0, 1.25, 0.02);
-        group.add(collar);
+        collar.position.set(0, 0.45, 0.02); // relative to body center
+        body.add(collar);
     } else if (skin === 'ouro') {
         // Crown
         const crownBase = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.11, 0.08, 12),
             new THREE.MeshStandardMaterial({ color: 0xD32F2F, roughness: 0.3 })); // Crimson base cushion
-        crownBase.position.set(0, 1.78, 0.02);
+        crownBase.position.set(0, 0.26, 0.02); // relative to head center
         crownBase.rotation.x = 0.05;
-        group.add(crownBase);
+        head.add(crownBase);
 
         const crownGold = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.10, 0.06, 12, 1, true),
             new THREE.MeshStandardMaterial({ color: 0xFFD700, roughness: 0.1, metalness: 0.9 })); // Gold trim
-        crownGold.position.set(0, 1.79, 0.02);
-        group.add(crownGold);
+        crownGold.position.set(0, 0.27, 0.02); // relative to head center
+        head.add(crownGold);
 
         // Tiny crown tips (cross or spheres)
         const tipMat = new THREE.MeshStandardMaterial({ color: 0xFFD700, roughness: 0.1, metalness: 0.9 });
         for (let i = 0; i < 4; i++) {
             const angle = (i * Math.PI) / 2;
             const tip = new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 6), tipMat);
-            tip.position.set(Math.cos(angle) * 0.1, 1.84, Math.sin(angle) * 0.1 + 0.02);
-            group.add(tip);
+            tip.position.set(Math.cos(angle) * 0.1, 0.32, Math.sin(angle) * 0.1 + 0.02); // relative to head center
+            head.add(tip);
         }
     }
 
@@ -918,29 +918,29 @@ export function createCustomerModel(colorIndex) {
     body.castShadow = true;
     group.add(body);
 
-    // Belly patch
+    // Belly patch (child of body)
     const belly = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.55, 8), bellyMat);
-    belly.position.set(0, 0.72, 0.08);
-    group.add(belly);
+    belly.position.set(0, -0.03, 0.08); // relative to body center
+    body.add(belly);
 
-    // Head
+    // Head (child of body)
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 14, 14), furMat);
-    head.position.y = 1.42;
+    head.position.set(0, 0.67, 0); // relative to body center
     head.castShadow = true;
-    group.add(head);
+    body.add(head);
 
-    // Ears, face, tail
-    const ears = addCatEars(group, 1.42, furMat, materials.catPink);
-    addCatFace(group, 1.42, materials.catPink);
-    const tailPivot = addCatTail(group, 0.75, furMat);
+    // Ears, face, tail (attached to head and body)
+    const ears = addCatEars(head, furMat, materials.catPink); // attached to head
+    addCatFace(head, materials.catPink); // attached to head
+    const tailPivot = addCatTail(body, furMat); // attached to body
 
-    // Arms (left and right shoulder pivots)
+    // Arms (left and right shoulder pivots) (children of body)
     const armGeo = new THREE.CylinderGeometry(0.045, 0.04, 0.32, 6);
     armGeo.translate(0, -0.16, 0); // pivot at shoulder
     const leftArm = new THREE.Mesh(armGeo, furMat);
-    leftArm.position.set(-0.3, 0.95, 0.0);
+    leftArm.position.set(-0.3, 0.2, 0.0); // relative to body center
     const rightArm = new THREE.Mesh(armGeo, furMat);
-    rightArm.position.set(0.3, 0.95, 0.0);
+    rightArm.position.set(0.3, 0.2, 0.0); // relative to body center
 
     const pawGeo = new THREE.SphereGeometry(0.055, 6, 6);
     const leftArmPaw = new THREE.Mesh(pawGeo, bellyMat);
@@ -950,16 +950,16 @@ export function createCustomerModel(colorIndex) {
     rightArmPaw.position.set(0, -0.32, 0);
     rightArm.add(rightArmPaw);
 
-    group.add(leftArm);
-    group.add(rightArm);
+    body.add(leftArm);
+    body.add(rightArm);
 
-    // Legs (left and right hip pivots)
+    // Legs (left and right hip pivots) (children of root group)
     const legGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.28, 6);
     legGeo.translate(0, -0.14, 0); // pivot at hip
     const leftLeg = new THREE.Mesh(legGeo, furMat);
-    leftLeg.position.set(-0.15, 0.32, 0.04);
+    leftLeg.position.set(-0.15, 0.32, 0.04); // relative to root group
     const rightLeg = new THREE.Mesh(legGeo, furMat);
-    rightLeg.position.set(0.16, 0.32, 0.04);
+    rightLeg.position.set(0.16, 0.32, 0.04); // relative to root group
 
     const pawColor = (colorIndex % 3 === 0) ? palette.belly : palette.fur;
     const pawMat = new THREE.MeshStandardMaterial({ color: pawColor, roughness: 0.85 });
@@ -1313,15 +1313,14 @@ export function updateModelAnimations(dt, model, state, speedMultiplier = 1.0) {
 
     // ---- Restore base positions each frame ----
     const baseBodyY = (data.type === 'waiter') ? 0.8 : 0.75;
-    const baseHeadY = (data.type === 'waiter') ? 1.52 : 1.42;
+    const baseHeadY = (data.type === 'waiter') ? 0.72 : 0.67; // Local to body center
     if (data.body) {
         data.body.position.y = baseBodyY;
         data.body.scale.set(1, 1, 1);
         data.body.rotation.set(0, 0, 0);
     }
     if (data.head) {
-        data.head.position.y = baseHeadY;
-        data.head.position.z = 0;
+        data.head.position.set(0, baseHeadY, 0);
         data.head.rotation.set(0, 0, 0);
     }
     if (data.leftLeg)  data.leftLeg.rotation.set(0, 0, 0);
@@ -1335,7 +1334,7 @@ export function updateModelAnimations(dt, model, state, speedMultiplier = 1.0) {
         // Body bob
         const bob = Math.abs(Math.sin(time)) * 0.07;
         if (data.body) data.body.position.y += bob;
-        if (data.head) data.head.position.y += bob;
+        // Head bobs automatically because it is a child of the body group
 
         // Leg swing
         const legSwing = Math.sin(time) * 0.6;
@@ -1367,8 +1366,8 @@ export function updateModelAnimations(dt, model, state, speedMultiplier = 1.0) {
         // Eating head-bob toward plate
         const eatBob = Math.abs(Math.sin(time * 1.6)) * 0.11;
         if (data.head) {
-            data.head.position.y -= eatBob;
-            data.head.position.z += eatBob * 0.6;
+            data.head.position.y = baseHeadY - eatBob;
+            data.head.position.z = eatBob * 0.6;
             data.head.rotation.x = eatBob * 1.4;
         }
         // Circular happy tail
